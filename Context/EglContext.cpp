@@ -58,7 +58,15 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
      surface = EGL_NO_SURFACE;
    assert(surface != EGL_NO_SURFACE);
 }
-EglContext::~EglContext(){}
+EglContext::~EglContext(){
+  // Clear Display state
+  eglSwapBuffers(display, surface);
+
+   // Release resources
+   eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+   eglDestroyContext(display, context);
+   eglTerminate(display );
+}
 
 void* EglContext::getDisplay() { return (void*)&display; }
 

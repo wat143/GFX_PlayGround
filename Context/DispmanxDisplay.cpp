@@ -29,7 +29,16 @@ DispmanxDisplay::DispmanxDisplay(int type):Display(type) {
   vc_dispmanx_update_submit_sync(dispman_update);
 };
 
-DispmanxDisplay::~DispmanxDisplay(){}
+DispmanxDisplay::~DispmanxDisplay(){
+  int ret;
+  DISPMANX_UPDATE_HANDLE_T dispmanUpdateHandle;
+  dispmanUpdateHandle = vc_dispmanx_update_start(0);
+  ret = vc_dispmanx_element_remove(dispmanUpdateHandle, dispman_element);
+  assert(ret == 0);
+  vc_dispmanx_update_submit_sync(dispmanUpdateHandle);
+  ret = vc_dispmanx_display_close(dispman_display);
+  assert (ret == 0);
+}
 
 void* DispmanxDisplay::getNativeDisplay() {
   return (void*)&dispman_display;
