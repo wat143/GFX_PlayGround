@@ -11,8 +11,8 @@ class Shader {
   virtual ~Shader(){}
   virtual void initShader()=0;
   virtual void useProgram()=0;
-  virtual unsigned int getAttribLocation(char*)=0;
-  virtual unsigned int getUniLocation(char*)=0;
+  virtual unsigned int getAttribLocation(const char*)=0;
+  virtual unsigned int getUniLocation(const char*)=0;
 };
 
 #endif

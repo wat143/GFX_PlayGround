@@ -9,13 +9,14 @@ class GLShader : public Shader {
   GLuint vertexShader;
   GLuint fragmentShader;
   GLuint program;
+  void ShaderLog(GLuint);
  public:
   GLShader(const char*, const char*);
   ~GLShader();
   void initShader();
   void useProgram();
-  unsigned int getAttribLocation(char*);
-  unsigned int getUniLocation(char*);
+  unsigned int getAttribLocation(const char*);
+  unsigned int getUniLocation(const char*);
 };
 
 #endif
