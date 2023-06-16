@@ -19,6 +19,7 @@ class Object {
   Shader* shader;
   std::unordered_map<std::string, int> attribs;
   std::unordered_map<std::string, int> uniforms;
+  std::unordered_map<std::string, int> textures;
  public:
   Object(std::string, const char*, const char*,
 	 unsigned int x, unsigned int y,
@@ -30,14 +31,18 @@ class Object {
   };
   virtual bool prepare()=0;
   virtual bool activate()=0;
-  virtual bool deactivate()=0;  
+  virtual bool activateWithTexture(std::string)=0;
+  virtual bool deactivate()=0;
+  virtual bool deactivateWithTexture(std::string)=0;
   virtual void draw()=0;
   virtual bool addAttributeByType(std::string, int)=0;
   virtual bool addAttribute(std::string, void*, int)=0;
   virtual bool addIndexBuffer()=0;
   virtual bool addUniform(std::string)=0;
+  virtual bool addTexture(std::string, int, int, std::string)=0;
   // ToDo: add for other vec, mat types
   virtual bool updateUniformMat4(std::string, glm::mat4&)=0;
+  virtual bool updateUniform1i(std::string, int)=0;
 };
 
 #endif
