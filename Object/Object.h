@@ -21,14 +21,20 @@ class Object {
   std::unordered_map<std::string, int> uniforms;
   std::unordered_map<std::string, int> textures;
  public:
-  Object(std::string, const char*, const char*,
+  Object(const char*, const char*,
 	 unsigned int x, unsigned int y,
-	 unsigned int w, unsigned int h):start_x(x), start_y(y), width(w), height(h){};
+	 unsigned int w, unsigned int h):start_x(x), start_y(y), width(w), height(h){
+    mesh = nullptr;
+  };
   virtual ~Object(){
     delete mesh;
     delete ctxt;
     delete shader;
   };
+  void addMesh(Mesh* m) {
+    if (!mesh)
+      mesh = m;
+  }
   virtual bool prepare()=0;
   virtual bool activate()=0;
   virtual bool activateWithTexture(std::string)=0;

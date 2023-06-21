@@ -20,7 +20,7 @@ class PiGLObject : public Object {
   std::unordered_map<GLuint, GLuint> uniBuf;
   GLuint indexBuf;
  public:
-  PiGLObject(std::string, const char*, const char*,
+  PiGLObject(const char*, const char*,
 	     unsigned int, unsigned int, unsigned int, unsigned int);
   ~PiGLObject();
   bool prepare();

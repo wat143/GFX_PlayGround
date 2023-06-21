@@ -6,11 +6,10 @@
 #include "GLShader.h"
 #include "ImageLoader.h"
 
-PiGLObject::PiGLObject(std::string meshPath, const char* vs,const char* fs,
+PiGLObject::PiGLObject(const char* vs,const char* fs,
 		       unsigned int x, unsigned int y, unsigned int w, unsigned int h)
-  :Object(meshPath, vs, fs, x, y, w, h)
+  :Object(vs, fs, x, y, w, h)
 {
-  mesh = new AssimpMesh(meshPath.c_str());
   ctxtFactory = new PiContextFactory();
   ctxt = ctxtFactory->create();
   shader = new GLShader(vs, fs);
@@ -28,8 +27,6 @@ bool PiGLObject::prepare() {
   // Setup viewport
   glViewport(start_x, start_y, start_x + width, start_y + height);
   GL_ERROR_CHECK();
-  // Import mesh
-  mesh->import();
   return true;
 }
 
@@ -184,7 +181,6 @@ bool PiGLObject::addUniform(std::string str) {
   GLuint uni = shader->getUniLocation(str.c_str());
   GL_ERROR_CHECK();
   uniforms[str] = uni;
-  std::cout << __func__ << ": " << str << "," << uni << std::endl;
   return true;
 }
 
