@@ -35,6 +35,8 @@ class Object {
     if (!mesh)
       mesh = m;
   }
+  unsigned int getWidth() { return width; }
+  unsigned int getHeight() { return height; }
   virtual bool prepare()=0;
   virtual bool activate()=0;
   virtual bool activateWithTexture(std::string)=0;
