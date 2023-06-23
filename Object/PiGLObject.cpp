@@ -70,7 +70,7 @@ bool PiGLObject::deactivate() {
 }
 
 bool PiGLObject::deactivateWithTexture(std::string name) {
-  glBindTexture(GL_TEXTURE_2D, textures[name]);
+  glBindTexture(GL_TEXTURE_2D, 0);
   GL_ERROR_CHECK();
   return deactivate();
 }
@@ -181,6 +181,14 @@ bool PiGLObject::addUniform(std::string str) {
   GLuint uni = shader->getUniLocation(str.c_str());
   GL_ERROR_CHECK();
   uniforms[str] = uni;
+  return true;
+}
+
+bool PiGLObject::updateUniformVec3(std::string uni, glm::vec3& vec ) {
+  if (!uniforms.count(uni))
+    return false;
+  glUniform3fv(uniforms[uni], 3, &vec[0]);
+  GL_ERROR_CHECK();
   return true;
 }
 

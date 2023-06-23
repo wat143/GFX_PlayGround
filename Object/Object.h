@@ -49,6 +49,7 @@ class Object {
   virtual bool addUniform(std::string)=0;
   virtual bool addTexture(std::string, int, int, std::string)=0;
   // ToDo: add for other vec, mat types
+  virtual bool updateUniformVec3(std::string, glm::vec3&)=0;
   virtual bool updateUniformMat4(std::string, glm::mat4&)=0;
   virtual bool updateUniform1i(std::string, int)=0;
 };

@@ -34,6 +34,7 @@ class PiGLObject : public Object {
   bool addIndexBuffer();
   bool addUniform(std::string);
   bool addTexture(std::string, int, int, std::string);
+  bool updateUniformVec3(std::string, glm::vec3&);
   bool updateUniformMat4(std::string, glm::mat4&);
   bool updateUniform1i(std::string, int);
 };
