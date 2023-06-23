@@ -6,6 +6,7 @@
 
 DispmanxDisplay::DispmanxDisplay(int type):Display(type) {
   int ret;
+  bcm_host_init();
   ret = graphics_get_display_size(0, (uint32_t*)&window_w, (uint32_t*)&window_h);
   assert(ret >= 0);
   dst_rect.x = 0;
