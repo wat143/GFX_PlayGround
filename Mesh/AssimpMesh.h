@@ -12,6 +12,7 @@ class AssimpMesh : public Mesh {
   void processMesh(const aiMesh* mesh);
   void processNode(const aiScene* scene);
  public:
+  AssimpMesh();
   AssimpMesh(std::string path);
   ~AssimpMesh();
   void import();

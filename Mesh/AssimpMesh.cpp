@@ -1,8 +1,9 @@
 #include "AssimpMesh.h"
 #include <iostream>
 
-AssimpMesh::AssimpMesh(std::string path):Mesh(path){};
-AssimpMesh::~AssimpMesh(){};
+AssimpMesh::AssimpMesh():Mesh(){}
+AssimpMesh::AssimpMesh(std::string path):Mesh(path){}
+AssimpMesh::~AssimpMesh(){}
 
 // Assimp import mesh
 void AssimpMesh::processMesh(const aiMesh* mesh) {
@@ -33,6 +34,13 @@ void AssimpMesh::processMesh(const aiMesh* mesh) {
     for (unsigned int j = 0; j < face.mNumIndices; j++) {
       index_num++;
       index_data.push_back(face.mIndices[j]);
+    }
+  }
+  // UV
+  if (mesh->HasTextureCoords(0) > 0) {
+    for (int i = 0; i < (int)mesh->mNumVertices; i++) {
+      uv_data.push_back(mesh->mTextureCoords[0][i].x);
+      uv_data.push_back(mesh->mTextureCoords[0][i].y);
     }
   }
 }
