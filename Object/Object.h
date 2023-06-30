@@ -3,9 +3,11 @@
 
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include <glm/glm.hpp>
 #include "Mesh.h"
 #include "Context.h"
+#include "ContextSingleton.h"
 #include "Shader.h"
 
 class Object {
@@ -16,6 +18,7 @@ class Object {
   const unsigned int height;
   Mesh* mesh;
   Context* ctxt;
+  std::shared_ptr<ContextSingleton> singleton;
   Shader* shader;
   std::unordered_map<std::string, int> attribs;
   std::unordered_map<std::string, int> uniforms;

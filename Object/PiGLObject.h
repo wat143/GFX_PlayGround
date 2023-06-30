@@ -15,7 +15,6 @@
 
 class PiGLObject : public Object {
  private:
-  ContextFactory* ctxtFactory;
   std::unordered_map<GLuint, GLuint> attrBuf;
   std::unordered_map<GLuint, GLuint> uniBuf;
   GLuint indexBuf;

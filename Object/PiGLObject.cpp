@@ -10,14 +10,19 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
 		       unsigned int x, unsigned int y, unsigned int w, unsigned int h)
   :Object(vs, fs, x, y, w, h)
 {
-  ctxtFactory = new PiContextFactory();
-  ctxt = ctxtFactory->create();
+  if (singleton == nullptr) {
+    ContextFactory* ctxtFactory = new PiContextFactory();
+    ctxt = ctxtFactory->create();
+    ContextSingleton::createInstance(ctxt);
+    singleton = ContextSingleton::getInstance();
+    delete ctxtFactory;
+  }
+  else
+    ctxt = singleton->getContext();
   shader = new GLShader(vs, fs);
 }
 
-PiGLObject::~PiGLObject() {
-  delete ctxtFactory;
-}
+PiGLObject::~PiGLObject() {}
 
 bool PiGLObject::prepare() {
   ctxt->makeCurrent();
