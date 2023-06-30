@@ -17,7 +17,7 @@ class Object {
   const unsigned int width;
   const unsigned int height;
   Mesh* mesh;
-  Context* ctxt;
+  std::shared_ptr<Context> ctxt;
   std::shared_ptr<ContextSingleton> singleton;
   Shader* shader;
   std::unordered_map<std::string, int> attribs;
@@ -31,7 +31,6 @@ class Object {
   };
   virtual ~Object(){
     delete mesh;
-    delete ctxt;
     delete shader;
   };
   void addMesh(Mesh* m) {

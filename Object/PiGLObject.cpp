@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <glm/glm.hpp>
 #include "PiGLObject.h"
 #include "AssimpMesh.h"
@@ -12,7 +13,7 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
 {
   if (singleton == nullptr) {
     ContextFactory* ctxtFactory = new PiContextFactory();
-    ctxt = ctxtFactory->create();
+    ctxt = std::shared_ptr<Context>(ctxtFactory->create());
     ContextSingleton::createInstance(ctxt);
     singleton = ContextSingleton::getInstance();
     delete ctxtFactory;

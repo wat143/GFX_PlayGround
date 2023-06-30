@@ -2,7 +2,7 @@
 
 std::shared_ptr<ContextSingleton> ContextSingleton::singleton_ = nullptr;
 
-void ContextSingleton::createInstance(Context* ctx) {
+void ContextSingleton::createInstance(std::shared_ptr<Context> ctx) {
   if (singleton_ == nullptr)
     singleton_ = std::shared_ptr<ContextSingleton>(new ContextSingleton(ctx));
   else
@@ -16,6 +16,6 @@ std::shared_ptr<ContextSingleton> ContextSingleton::getInstance() {
   return singleton_;
 }
 
-Context* ContextSingleton::getContext() {
+std::shared_ptr<Context> ContextSingleton::getContext() {
   return context;
 }
