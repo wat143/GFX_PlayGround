@@ -11,6 +11,7 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
 		       unsigned int x, unsigned int y, unsigned int w, unsigned int h)
   :Object(vs, fs, x, y, w, h)
 {
+  singleton = ContextSingleton::getInstance();
   if (singleton == nullptr) {
     ContextFactory* ctxtFactory = new PiContextFactory();
     ctxt = std::shared_ptr<Context>(ctxtFactory->create());
