@@ -23,6 +23,7 @@ class Object {
   std::unordered_map<std::string, int> attribs;
   std::unordered_map<std::string, int> uniforms;
   std::unordered_map<std::string, int> textures;
+  std::unordered_map<std::string, int> fbs;
  public:
   Object(const char*, const char*,
 	 unsigned int x, unsigned int y,
@@ -39,17 +40,21 @@ class Object {
   }
   unsigned int getWidth() { return width; }
   unsigned int getHeight() { return height; }
+  unsigned int getTexture(std::string name) { return textures[name]; }
   virtual bool prepare()=0;
   virtual bool activate()=0;
-  virtual bool activateWithTexture(std::string)=0;
+  virtual bool activateTexture(std::string)=0;
+  virtual bool activateFB(std::string)=0;
   virtual bool deactivate()=0;
-  virtual bool deactivateWithTexture(std::string)=0;
   virtual void draw()=0;
+  virtual void swapBuffers()=0;
   virtual bool addAttributeByType(std::string, int)=0;
   virtual bool addAttribute(std::string, void*, int)=0;
   virtual bool addIndexBuffer()=0;
   virtual bool addUniform(std::string)=0;
   virtual bool addTexture(std::string, int, int, std::string)=0;
+  virtual bool addTexture(std::string, unsigned int)=0;
+  virtual bool addFB(std::string)=0;
   // ToDo: add for other vec, mat types
   virtual bool updateUniformVec3(std::string, glm::vec3&)=0;
   virtual bool updateUniformMat4(std::string, glm::mat4&)=0;

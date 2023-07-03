@@ -27,7 +27,6 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
 PiGLObject::~PiGLObject() {}
 
 bool PiGLObject::prepare() {
-  ctxt->makeCurrent();
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   shader->initShader();
@@ -50,18 +49,15 @@ bool PiGLObject::activate() {
   return true;
 }
 
-bool PiGLObject::activateWithTexture(std::string name) {
-  shader->useProgram();
+bool PiGLObject::activateTexture(std::string name) {
   glBindTexture(GL_TEXTURE_2D, textures[name]);
   GL_ERROR_CHECK();
   updateUniform1i(name, 0);
-  // Enable attributes
-  for (auto itr = attribs.begin(); itr != attribs.end(); itr++) {
-    glEnableVertexAttribArray(itr->second);
-  }
-  GL_ERROR_CHECK();
-  // Bind index buffer
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuf);
+  return true;
+}
+
+bool PiGLObject::activateFB(std::string fb_name) {
+  glBindFramebuffer(GL_FRAMEBUFFER, fbs[fb_name]);
   GL_ERROR_CHECK();
   return true;
 }
@@ -72,14 +68,10 @@ bool PiGLObject::deactivate() {
     glDisableVertexAttribArray(itr->second);
   }
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   GL_ERROR_CHECK();
   return true;
-}
-
-bool PiGLObject::deactivateWithTexture(std::string name) {
-  glBindTexture(GL_TEXTURE_2D, 0);
-  GL_ERROR_CHECK();
-  return deactivate();
 }
 
 void PiGLObject::draw() {
@@ -88,8 +80,11 @@ void PiGLObject::draw() {
   GL_ERROR_CHECK();
   glFlush();
   glFinish();
-  ctxt->swapBuffers();
   GL_ERROR_CHECK();
+}
+
+void PiGLObject::swapBuffers() {
+  ctxt->swapBuffers();
 }
 
 bool PiGLObject::addAttributeByType(std::string str, int attrType) {
@@ -128,6 +123,7 @@ bool PiGLObject::addAttributeByType(std::string str, int attrType) {
     return false;
   }
   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * size, data, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(attr);
   glVertexAttribPointer(attr, num, GL_FLOAT, GL_TRUE, 0, 0);
   GL_ERROR_CHECK();
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -143,6 +139,7 @@ bool PiGLObject::addAttribute(std::string str, void* data, int size) {
   glBindBuffer(GL_ARRAY_BUFFER, buf);
   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * size,
 	       static_cast<GLfloat*>(data), GL_STATIC_DRAW);
+  glVertexAttribPointer(attr, 3, GL_FLOAT, GL_TRUE, 0, 0);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   GL_ERROR_CHECK();
   return true;
@@ -181,6 +178,43 @@ bool PiGLObject::addTexture(std::string filePath,int width,
   glBindTexture(GL_TEXTURE_2D, 0);
   GL_ERROR_CHECK();
   delete image;
+  return true;
+}
+
+bool PiGLObject::addTexture(std::string name, unsigned int tex) {
+  textures[name] = tex;
+  glBindTexture(GL_TEXTURE_2D, tex);
+  GL_ERROR_CHECK();
+  // ToDo Consider configurable parameters
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLfloat)GL_NEAREST);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat)GL_NEAREST);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  GL_ERROR_CHECK();
+  return true;
+}
+
+bool PiGLObject::addFB(std::string name){
+  GLuint texForFB, texFB;
+  // Generate texture for FB
+  glGenTextures(1, &texForFB);
+  glBindTexture(GL_TEXTURE_2D, texForFB);
+  GL_ERROR_CHECK();
+  textures[name] = texForFB;
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, getWidth(), getHeight(), 0, GL_RGB,
+	       GL_UNSIGNED_SHORT_5_6_5, 0);
+  GL_ERROR_CHECK();
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  // Generate FB
+  glGenFramebuffers(1, &texFB);
+  GL_ERROR_CHECK();
+  fbs[name] = texFB;
+  glBindFramebuffer(GL_FRAMEBUFFER, texFB);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+			 texForFB, 0);
+  GL_ERROR_CHECK();
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
   return true;
 }
 

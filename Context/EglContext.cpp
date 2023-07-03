@@ -58,6 +58,7 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
    else
      surface = EGL_NO_SURFACE;
    assert(surface != EGL_NO_SURFACE);
+   eglMakeCurrent(display, surface, surface, context);
 }
 EglContext::~EglContext(){
   // Clear Display state
