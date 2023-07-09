@@ -2,8 +2,8 @@
 #define __DISPMANXDISPLAY__
 
 #include "Display.h"
-#include "EGL/egl.h"
-#include "EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 class DispmanxDisplay : public Display {
  private:

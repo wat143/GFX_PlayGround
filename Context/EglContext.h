@@ -3,8 +3,8 @@
 
 #include "Context.h"
 #include "Display.h"
-#include "EGL/egl.h"
-#include "EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 class EglContext : public Context {
  private:

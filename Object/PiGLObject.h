@@ -3,7 +3,7 @@
 
 #include <cassert>
 #include <unordered_map>
-#include "GLES2/gl2.h"
+#include <GLES2/gl2.h>
 #include "Object.h"
 #include "AssimpMesh.h"
 #include "Context.h"

@@ -2,7 +2,7 @@
 #define __GLSHADER__
 
 #include "Shader.h"
-#include "GLES2/gl2.h"
+#include <GLES2/gl2.h>
 
 class GLShader : public Shader {
  private:

@@ -1,6 +1,6 @@
 #include <cassert>
 #include <cstdint>
-#include "bcm_host.h"
+#include <bcm_host.h>
 #include "Display.h"
 #include "DispmanxDisplay.h"
 
