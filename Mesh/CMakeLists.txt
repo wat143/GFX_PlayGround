@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.16.3 )
 
-project(GFX_PlayGround)
+project(Mesh)
 
 add_library(Mesh STATIC
   AssimpMesh.cpp

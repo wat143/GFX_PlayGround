@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.16.3 )
 
-project(GFX_PlayGround)
+project(Renderer)
 
 add_executable(simple_teapot simple_teapot.cpp)
 target_include_directories(simple_teapot
