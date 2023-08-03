@@ -25,8 +25,12 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
    };
 
    // Get eglDisplay
-   display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-   assert(display != EGL_NO_DISPLAY);
+  void* dev = disp->getDisplayDev();
+  if (!dev)
+    display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+  else
+    display = eglGetDisplay(dev);
+  assert(display != EGL_NO_DISPLAY);
 
    // Initialize the EGL display connection
    ret = eglInitialize(display, nullptr, nullptr);

@@ -14,6 +14,7 @@ class Display {
   virtual ~Display(){}
   virtual void* getNativeDisplay()=0;
   virtual void* getNativeWindow()=0;
+  virtual void* getDisplayDev()=0;
   int getFWType() { return FWType; };
 };
 

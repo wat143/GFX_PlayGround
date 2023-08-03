@@ -48,3 +48,8 @@ void* DispmanxDisplay::getNativeDisplay() {
 void* DispmanxDisplay::getNativeWindow() {
   return (void*)&nativewindow;
 }
+
+void* DispmanxDisplay::getDisplayDev() {
+  // nop
+  return nullptr;
+}

@@ -18,6 +18,7 @@ class DispmanxDisplay : public Display {
   ~DispmanxDisplay();
   void* getNativeDisplay();
   void* getNativeWindow();
+  void* getDisplayDev();
 };
 
 #endif
