@@ -7,7 +7,7 @@ PiContextFactory::PiContextFactory(){}
 PiContextFactory::~PiContextFactory(){}
 
 Context* PiContextFactory::create() {
-  Display* disp = new DispmanxDisplay(RaspPi3);
+  Display* disp = new DispmanxDisplay(DispmanX);
   Context* context = new EglContext(disp, OpenGLESv2);
   return context;
 }

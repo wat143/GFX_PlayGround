@@ -1,9 +1,9 @@
 #ifndef __UTILS__
 #define __UTILS__
 
-// Platform type
-enum PlatformType {
-      RaspPi3 = 1,
+// Framework type
+enum FrameworkType {
+      DispmanX = 1,
 };
 
 // API

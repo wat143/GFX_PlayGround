@@ -50,7 +50,7 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
    assert(context != EGL_NO_CONTEXT);
 
    // Create an EGL window surface
-   if (Disp->getPFType() == RaspPi3) {
+   if (Disp->getFWType() == DispmanX) {
      EGL_DISPMANX_WINDOW_T* nativewindow =
        static_cast<EGL_DISPMANX_WINDOW_T*>(disp->getNativeWindow());
      surface = eglCreateWindowSurface(display, config, nativewindow, nullptr);
