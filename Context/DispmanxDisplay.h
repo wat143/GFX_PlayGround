@@ -19,6 +19,7 @@ class DispmanxDisplay : public Display {
   void* getNativeDisplay();
   void* getNativeWindow();
   void* getDisplayDev();
+  int pageFlip() { return 0; }
 };
 
 #endif

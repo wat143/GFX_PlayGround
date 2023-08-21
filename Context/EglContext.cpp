@@ -24,6 +24,7 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
       EGL_NONE
    };
 
+  fwType = disp->getFWType();
    // Get eglDisplay
   void* dev = disp->getDisplayDev();
   if (!dev)
@@ -49,12 +50,16 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
    assert(ret != EGL_FALSE);
    
    // Create an EGL rendering context
-   context =
-     eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
+   if (fwType == DRM)
+     context =
+       eglCreateContext(display, config, gbm->format, context_attributes);
+   else
+     context =
+       eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
    assert(context != EGL_NO_CONTEXT);
 
    // Create an EGL window surface
-   if (Disp->getFWType() == DispmanX) {
+   if (fwType == DispmanX) {
      EGL_DISPMANX_WINDOW_T* nativewindow =
        static_cast<EGL_DISPMANX_WINDOW_T*>(disp->getNativeWindow());
      surface = eglCreateWindowSurface(display, config, nativewindow, nullptr);
@@ -66,7 +71,8 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
 }
 EglContext::~EglContext(){
   // Clear Display state
-  eglSwapBuffers(display, surface);
+  if (fwType != DRM)
+    eglSwapBuffers(display, surface);
 
    // Release resources
    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -88,6 +94,11 @@ int EglContext::makeCurrent() {
 
 int EglContext::swapBuffers() {
   int ret;
-  ret = eglSwapBuffers(display, surface);
+  if (fwType == DRM) {
+    ret = eglSwapBuffers(display, surface);
+    display->pageFlip();
+  }
+  else
+    ret = eglSwapBuffers(display, surface);
   return ret;
 }

@@ -11,6 +11,7 @@ class EglContext : public Context {
    EGLDisplay display;
    EGLSurface surface;
    EGLContext context;
+   int fwType;
  public:
   EglContext(Display*, int);
    ~EglContext();
@@ -18,7 +19,7 @@ class EglContext : public Context {
    void* getSurface();
    void* getWindow();
    int makeCurrent();
-  int swapBuffers();
+   int swapBuffers();
 };
 
 #endif
