@@ -2,7 +2,7 @@ cmake_minimum_required( VERSION 3.16.3 )
 
 project(Context)
 
-if(BUILD_FW MATCHES PI3)
+if(BUILD_FW MATCHES DISPMANX)
   set(CONTEXT_SOURCE
     ContextSingleton.cpp
     DispmanxDisplay.cpp
@@ -12,6 +12,12 @@ if(BUILD_FW MATCHES PI3)
     brcmEGL
     brcmGLESv2
     bcm_host)
+if(BUILD_FW MATCHES DRM)
+  set(CONTEXT_SOURCE
+    ContextSingleton.cpp
+    DrmDisplay.cpp
+    EglContext.cpp
+    DrmContextFactory.cpp)
 elseif()
   message(FATAL, "No FW is set")
 endif()
