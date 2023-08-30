@@ -7,7 +7,7 @@ if(BUILD_FW MATCHES DISPMANX)
     ContextSingleton.cpp
     DispmanxDisplay.cpp
     EglContext.cpp
-    PiContextFactory.cpp)
+    ContextFactory.cpp)
   set(CONTEXT_LIB
     brcmEGL
     brcmGLESv2

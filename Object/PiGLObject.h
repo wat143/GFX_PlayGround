@@ -7,7 +7,7 @@
 #include "Object.h"
 #include "AssimpMesh.h"
 #include "Context.h"
-#include "PiContextFactory.h"
+#include "ContextFactory.h"
 #include "GLShader.h"
 #include "Utils.h"
 
