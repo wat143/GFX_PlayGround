@@ -13,8 +13,8 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
 {
   singleton = ContextSingleton::getInstance();
   if (singleton == nullptr) {
-    ContextFactory* ctxtFactory = new PiContextFactory();
-    ctxt = std::shared_ptr<Context>(ctxtFactory->create());
+    ContextFactory* ctxtFactory = new ContextFactory();
+    ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
     ContextSingleton::createInstance(ctxt);
     singleton = ContextSingleton::getInstance();
     delete ctxtFactory;

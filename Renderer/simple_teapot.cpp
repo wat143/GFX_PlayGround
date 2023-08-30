@@ -21,7 +21,6 @@
 
 #include "AssimpMesh.h"
 #include "Context.h"
-#include "ContextFactory.h"
 #include "PiContextFactory.h"
 #include "GLShader.h"
 #include "Object.h"
