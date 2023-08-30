@@ -1,5 +1,5 @@
 #ifndef __CONTEXTFACTORY__
-#define __CONTEXTFACTORY__
+32;331;0c#define __CONTEXTFACTORY__
 
 #include "Context.h"
 
@@ -7,7 +7,7 @@ class ContextFactory {
  public:
   ContextFactory(){}
   ~ContextFactory(){}
-  virtual Context* create()=0;
+  Context* create(int fw_type);
 };
 
 #endif
