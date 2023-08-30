@@ -8,7 +8,7 @@
 #include <gbm.h>
 #include <unistd.h>
 
-#include "display.h"
+#include "Display.h"
 #include "Utils.h"
 
 /* Note:Legacy commit is the first target and props are not required. */
