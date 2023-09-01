@@ -11,9 +11,10 @@ class EglContext : public Context {
    EGLDisplay display;
    EGLSurface surface;
    EGLContext context;
+   NativeDisplay* nativeDisp;
    int fwType;
  public:
-  EglContext(Display*, int);
+  EglContext(NativeDisplay*, int);
    ~EglContext();
    void* getDisplay();
    void* getSurface();

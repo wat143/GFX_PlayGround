@@ -1,5 +1,5 @@
 #ifndef __CONTEXTFACTORY__
-32;331;0c#define __CONTEXTFACTORY__
+#define __CONTEXTFACTORY__
 
 #include "Context.h"
 
