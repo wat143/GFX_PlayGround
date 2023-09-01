@@ -4,7 +4,7 @@
 #include "EGL/eglext.h"
 #include "Utils.h"
 
-EglContext::EglContext(Display* disp, int api):Context(disp, api){
+EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
   int ret = -1;
   EGLint num_config = 0;
   const EGLint attribute_list[] =
@@ -24,13 +24,14 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
       EGL_NONE
    };
 
+  nativeDisp = disp;
   fwType = disp->getFWType();
    // Get eglDisplay
   void* dev = disp->getDisplayDev();
   if (!dev)
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   else
-    display = eglGetDisplay(dev);
+    display = eglGetDisplay(static_cast<EGLNativeDisplayType>(dev));
   assert(display != EGL_NO_DISPLAY);
 
    // Initialize the EGL display connection
@@ -52,7 +53,7 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
    // Create an EGL rendering context
    if (fwType == DRM)
      context =
-       eglCreateContext(display, config, gbm->format, context_attributes);
+       eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
    else
      context =
        eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
@@ -60,9 +61,9 @@ EglContext::EglContext(Display* disp, int api):Context(disp, api){
 
    // Create an EGL window surface
    if (fwType == DispmanX) {
-     EGL_DISPMANX_WINDOW_T* nativewindow =
-       static_cast<EGL_DISPMANX_WINDOW_T*>(disp->getNativeWindow());
-     surface = eglCreateWindowSurface(display, config, nativewindow, nullptr);
+     EGLNativeWindowType* nativewindow =
+       static_cast<EGLNativeWindowType*>(disp->getNativeWindow());
+     surface = eglCreateWindowSurface(display, config, *nativewindow, nullptr);
    }
    else
      surface = EGL_NO_SURFACE;
@@ -96,7 +97,7 @@ int EglContext::swapBuffers() {
   int ret;
   if (fwType == DRM) {
     ret = eglSwapBuffers(display, surface);
-    display->pageFlip();
+    nativeDisp->pageFlip();
   }
   else
     ret = eglSwapBuffers(display, surface);

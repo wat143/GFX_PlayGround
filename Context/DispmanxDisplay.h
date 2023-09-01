@@ -5,7 +5,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-class DispmanxDisplay : public Display {
+class DispmanxDisplay : public NativeDisplay {
  private:
   EGL_DISPMANX_WINDOW_T nativewindow;
   DISPMANX_ELEMENT_HANDLE_T dispman_element;

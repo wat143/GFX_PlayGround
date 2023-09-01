@@ -4,7 +4,7 @@
 #include "Display.h"
 #include "DispmanxDisplay.h"
 
-DispmanxDisplay::DispmanxDisplay(int type):Display(type) {
+DispmanxDisplay::DispmanxDisplay(int type):NativeDisplay(type) {
   int ret;
   bcm_host_init();
   ret = graphics_get_display_size(0, (uint32_t*)&window_w, (uint32_t*)&window_h);

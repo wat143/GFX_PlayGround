@@ -3,15 +3,15 @@
 
 #include "Utils.h"
 
-class Display {
+class NativeDisplay {
  private:
   int FWType;
  protected:
   unsigned int window_w;
   unsigned int window_h;
  public:
-  Display(int type):FWType(type){}
-  virtual ~Display(){}
+  NativeDisplay(int type):FWType(type){}
+  virtual ~NativeDisplay(){}
   virtual void* getNativeDisplay()=0;
   virtual void* getNativeWindow()=0;
   virtual void* getDisplayDev()=0;

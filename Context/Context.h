@@ -5,10 +5,10 @@
 
 class Context {
  protected:
-  Display* Disp;
+  NativeDisplay* Disp;
   int API;
  public:
-  Context(Display* disp, int api):Disp(disp),API(api){}
+  Context(NativeDisplay* disp, int api):Disp(disp),API(api){}
   virtual ~Context(){ delete Disp; }
   virtual void* getWindow()=0;
   virtual void* getDisplay()=0;

@@ -5,11 +5,17 @@
 #include <EGL/eglext.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
+#include <drm_fourcc.h>
 #include <gbm.h>
 #include <unistd.h>
 
 #include "Display.h"
 #include "Utils.h"
+
+/****************************************************************/
+/* Refered kmscube: https://gitlab.freedesktop.org/mesa/kmscube */
+/****************************************************************/
+
 
 /* Note:Legacy commit is the first target and props are not required. */
 /*      Prepare for atomic commit expansion */
@@ -25,7 +31,7 @@ struct drmCrtc {
 };
 
 struct drmFB {
-  int fbID;
+  uint32_t fbID;
   struct gbm_bo* bo;
 };
 
@@ -50,26 +56,22 @@ struct gbm {
   uint32_t format;
 };
 
-class DrmDisplay : public Display {
+class DrmDisplay : public NativeDisplay {
  private:
   bool firstFlip;
-  struct* drm;
-  struct* gbm;
+  struct gbm* gbm;
+  struct drm* drm;
   int numBuff = 2; // Use double buffering
   /* DRM related functions */
-  int initDrm();
+  int initDrm(std::string devName);
   struct drmOutput* createOutput(drmModeConnector* connector, drmModeRes* res);
-  struct drmCrtc* findCrtc(drmModeConnector* connector);
-  struct drmObject* findPlane(drmModeConnector* connector);
+  struct drmCrtc* findCrtc(drmModeRes* res, drmModeConnector* connector);
+  struct drmObject* findPlane(uint32_t crtcId);
   bool getObjectProperties(struct drmObject* obj, uint32_t type);
-  void drmFBDestroyCallback(struct gbm_bo* bo, void* data);
   struct drmFB* drmFBGetFromBO(struct gbm_bo* bo);
-  void pageFlipHandler(int fd, unsigned int frame, unsigned int sec,
-		       unsigned int usec, void* data);
-  int pageFlip();
   /* GBM related functions */
-  struct gbm* initGbm();
-  struct gbm* initGbmSurface();
+  int initGbm(uint32_t format, uint64_t modifier);
+  int initGbmSurface(uint64_t modifier);
  protected:
   unsigned int window_w;
   unsigned int window_h;
