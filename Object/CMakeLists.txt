@@ -2,12 +2,8 @@ cmake_minimum_required( VERSION 3.16.3 )
 
 project(Object)
 
-if(BUILD_FW MATCHES PI3)
-  set(OBJECT_SOURCE
-    PiGLObject.cpp)
-elseif()
-  message(FATAL, "No FW is set")
-endif()
+set(OBJECT_SOURCE
+  PiGLObject.cpp)
 
 add_library(Object STATIC ${OBJECT_SOURCE})
 include_directories(Object

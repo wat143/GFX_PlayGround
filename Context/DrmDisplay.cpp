@@ -8,331 +8,364 @@
 #include "DrmDisplay.h"
 
 DrmDisplay::DrmDisplay(int type):NativeDisplay(type){
-  drm = new struct drm;
-  if(initDrm("/dev/dri/card1"))
-    std::cerr << "Failed to init DRM\n";
-  /* ToDo: format and modifier shall be configurable */
-  gbm = new struct gbm;
-  if (initGbm(DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR))
-    std::cerr << "Failed to init GBM\n";
-  firstFlip = true;
+    drm = new struct drm;
+    if(initDrm("/dev/dri/card1"))
+        std::cerr << "Failed to init DRM\n";
+    /* ToDo: format and modifier shall be configurable */
+    gbm = new struct gbm;
+    if (initGbm(DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR))
+        std::cerr << "Failed to init GBM\n";
+    firstFlip = true;
 }
 
 DrmDisplay::~DrmDisplay() {
 }
 
 void* DrmDisplay::getNativeDisplay() {
-  /* NOP */
-  return nullptr;
+    /* NOP */
+    return nullptr;
 }
 
 void* DrmDisplay::getNativeWindow() {
-  /* provide gbm surface */
-  return gbm->surface;
+    /* provide gbm surface */
+    return gbm->surface;
 }
 
 void* DrmDisplay::getDisplayDev() {
-  return gbm->dev;
+    return gbm->dev;
 }
 
 struct drmCrtc* DrmDisplay::findCrtc(drmModeRes* res, drmModeConnector* connector) {
-  drmModeEncoder* encoder = nullptr;
-  struct drmCrtc* crtc = new struct drmCrtc;
-  uint32_t crtcId = 0;
+    drmModeEncoder* encoder = nullptr;
+    struct drmCrtc* crtc = new struct drmCrtc;
+    uint32_t crtcId = 0;
+    bool isFound = false;
 
-  crtc->crtcObj = new struct drmObject;
-  if (connector->encoder_id)
-    encoder = drmModeGetEncoder(drm->fd, connector->connector_id);
-  else
-    encoder = nullptr;
+    crtc->crtcObj = new struct drmObject;
+    for (int i = 0; !isFound && i < connector->count_encoders; i++) {
+        encoder = drmModeGetEncoder(drm->fd, connector->encoders[i]);
+        if (!encoder)
+            continue;
 
-  if (encoder) {
-    if (encoder->crtc_id)
-      crtcId = encoder->crtc_id;
-    if (crtcId > 0) {
-      drmModeFreeEncoder(encoder);
-      crtc->crtcObj->id = crtcId;
-      for (int i = 0; i < res->count_crtcs; i++) {
-	if (res->crtcs[i] == crtcId) {
-	  crtc->crtcIndex = i;
-	  break;
-	}
-      }
-      return crtc;
+        for (int j = 0; !isFound && j < res->count_crtcs; j++) {
+            /* check if CRTC can work with this encoder */
+            if (!(encoder->possible_crtcs & (1 << j)))
+                continue;
+            crtcId = res->crtcs[j];
+            if (crtcId > 0) {
+                crtc->crtcObj->id = crtcId;
+                crtc->crtcIndex = j;
+                isFound = true;
+            }
+        }
+        drmModeFreeEncoder(encoder);
     }
-    drmModeFreeEncoder(encoder);
-  }
-
-  /* Following 2 cases need to find available encoder+CRTC pair from all available resources */
-  /*     1. Connector is not bound to an encoder.                                            */
-  /*     2. CRTC and encoder pair has already been used.                                     */
-  for (int i = 0; i < connector->count_encoders; i++) {
-    encoder = drmModeGetEncoder(drm->fd, connector->encoders[i]);
-    if (!encoder)
-      continue;
-
-    for (int j = 0; j < res->count_crtcs; j++) {
-      /* check if CRTC can work with this encoder */
-      if (!(encoder->possible_crtcs & (1 << j)))
-	continue;
-      crtcId = res->crtcs[j];
-      if (crtcId > 0) {
-	drmModeFreeEncoder(encoder);
-	crtc->crtcObj->id = crtcId;
-	crtc->crtcIndex = j;
-	return crtc;
-      }
+    if (!isFound) {
+        std::cerr << "cannot find CRTC for connector "
+                  << connector->connector_id << std::endl;
+        delete crtc->crtcObj;
+        delete crtc;
+        crtc = nullptr;
     }
-    drmModeFreeEncoder(encoder);
-  }
-  std::cerr << "cannot find CRTC for connector " << connector->connector_id << std::endl;
-  delete crtc->crtcObj;
-  delete crtc;
-  return nullptr;
+    return crtc;
 }
 
-struct drmObject* DrmDisplay::findPlane(uint32_t crtcId) {
-  drmModePlaneResPtr planeRes;
-  bool isPrimary = false;
-  struct drmObject* plane = new struct drmObject;
+struct drmObject* DrmDisplay::findPlane(uint32_t crtcIdx) {
+    drmModePlaneResPtr planeRes;
+    bool isFound = false;
+    struct drmObject* plane = new struct drmObject;
 
-  planeRes = drmModeGetPlaneResources(drm->fd);
-  if (!planeRes) {
-    std::cerr << "drmModeGetPlaneResources failed " << strerror(errno) << std::endl;
-    delete plane;
-    return nullptr;
-  }
+    planeRes = drmModeGetPlaneResources(drm->fd);
+    if (!planeRes) {
+        std::cerr << "drmModeGetPlaneResources failed " << strerror(errno) << std::endl;
+        delete plane;
+        return nullptr;
+    }
 
-  for (int i = 0; (i < planeRes->count_planes) && !isPrimary; i++) {
-    int planeId = planeRes->planes[i];
-    drmModePlanePtr currentPlane = drmModeGetPlane(drm->fd, planeId);
-    if (!currentPlane) {
-      std::cerr << "drmModeGetPlane(" << planeId << ") failed " << strerror(errno) << std::endl;
-      continue;
+    for (int i = 0; (i < planeRes->count_planes) && !isFound; i++) {
+        int planeId = planeRes->planes[i];
+        drmModePlanePtr currentPlane = drmModeGetPlane(drm->fd, planeId);
+        if (!currentPlane) {
+            std::cerr << "drmModeGetPlane(" << planeId << ") failed "
+                      << strerror(errno) << std::endl;
+            continue;
+        }
+        if (currentPlane->possible_crtcs & (1 << crtcIdx)) {
+            plane->id = planeId;
+            isFound = true;
+        }
     }
-    if (currentPlane->possible_crtcs & (1 << crtcId)) {
-      /* check primary plane or not */
-      drmModeObjectPropertiesPtr props =
-	drmModeObjectGetProperties(drm->fd, planeId, DRM_MODE_OBJECT_PLANE);
-      for (int j = 0; j < props->count_props && !isPrimary; j++) {
-	drmModePropertyPtr prop = drmModeGetProperty(drm->fd, props->props[j]);
-	if (!strcmp(prop->name, "type") && props->prop_values[j] == DRM_PLANE_TYPE_PRIMARY) {
-	  isPrimary = true;
-	  plane->id = planeId;
-	}
-	drmModeFreeProperty(prop);
-      }
-      drmModeFreeObjectProperties(props);
+    drmModeFreePlaneResources(planeRes);
+    if (!isFound) {
+        std::cerr << "cannot find primary plane\n";
+        delete plane;
+        return nullptr;
     }
-  }
-  drmModeFreePlaneResources(planeRes);
-  if (!isPrimary) {
-    std::cerr << "cannot find primary plane\n";
-    delete plane;
-    return nullptr;
-  }
-  return plane;
+    return plane;
 }
 
 bool DrmDisplay::getObjectProperties(struct drmObject* obj, uint32_t type) {
-  obj->props = drmModeObjectGetProperties(drm->fd, obj->id, type);
-  if (!obj->props)
-    return false;
-  obj->propsInfo = new drmModePropertyRes*[obj->props->count_props];
-  for (int i = 0; i < obj->props->count_props; i++)
-    obj->propsInfo[i] = drmModeGetProperty(drm->fd, obj->props->props[i]);
-  return true;
+    obj->props = drmModeObjectGetProperties(drm->fd, obj->id, type);
+    if (!obj->props)
+        return false;
+    obj->propsInfo = new drmModePropertyRes*[obj->props->count_props];
+    for (int i = 0; i < obj->props->count_props; i++)
+        obj->propsInfo[i] = drmModeGetProperty(drm->fd, obj->props->props[i]);
+    return true;
 }
 
 struct drmOutput* DrmDisplay::createOutput(drmModeConnector* connector, drmModeRes* res) {
-  struct drmOutput* output = new struct drmOutput;
-  /* Choose mode */
-  /* Use prefered mode */
-  for (int i = 0; i < connector->count_modes; i++) {
-    drmModeModeInfo *currentMode = &connector->modes[i];
-    if (currentMode->type & DRM_MODE_TYPE_PREFERRED) {
-      output->mode = currentMode;
-      break;
+    struct drmOutput* output = new struct drmOutput;
+    int area = 0;
+    /* Choose mode */
+    for (int i = 0; i < connector->count_modes; i++) {
+        drmModeModeInfo *currentMode = &connector->modes[i];
+        /* Use prefered mode if exists */
+        if (currentMode->type & DRM_MODE_TYPE_PREFERRED) {
+            output->mode = currentMode;
+            window_w = currentMode->hdisplay;
+            window_h = currentMode->vdisplay;
+            break;
+        }
+        /* use largest mode */
+        int currentArea = currentMode->hdisplay * currentMode->vdisplay;
+        if (area < currentArea) {
+            output->mode = currentMode;
+            window_w = currentMode->hdisplay;
+            window_h = currentMode->vdisplay;
+            area = currentArea;
+        }
     }
-  }
-  struct drmObject* drmConnector = new struct drmObject;
-  drmConnector->id = connector->connector_id;
-  output->connector = drmConnector;
-  /* create the blob id */
-  if (drmModeCreatePropertyBlob(drm->fd, output->mode,
-				sizeof(*output->mode), &output->blob_id) != 0) {
-    std::cerr << "Failed to create a blob\n";
-    delete output->connector;
-    delete output;
-    return nullptr;
-  }
-  /* find CRTC */
-  output->crtc = findCrtc(res, connector);
-  /* find Plane */
-  /* We always use primary plane for rendering */
-  output->plane = findPlane(output->crtc->crtcObj->id);
+    std::cout << "Mode (w, h) = "<< window_w << ", " << window_h << std::endl;  
+    struct drmObject* drmConnector = new struct drmObject;
+    drmConnector->id = connector->connector_id;
+    output->connector = drmConnector;
+    /* create the blob id required for atomic commit */
+    if (drmModeCreatePropertyBlob(drm->fd, output->mode,
+                                  sizeof(*output->mode), &output->blob_id) != 0) {
+        std::cerr << "Failed to create a blob\n";
+        delete output->connector;
+        delete output;
+        return nullptr;
+    }
+    /* find CRTC */
+    output->crtc = findCrtc(res, connector);
+    /* find Plane */
+    output->plane = findPlane(output->crtc->crtcIndex);
 
-  /* get object properties of connector, CRTC and plane */
-  if (!getObjectProperties(output->connector, DRM_MODE_OBJECT_CONNECTOR))
-    std::cerr << "Failed to get connector object properties\n";
-  if (!getObjectProperties(output->crtc->crtcObj, DRM_MODE_OBJECT_CRTC))
-    std::cerr << "Failed to get CRTC object properties\n";
-  if (!getObjectProperties(output->plane, DRM_MODE_OBJECT_PLANE))
-    std::cerr << "Failed to get plane object properties\n";
-
-  return output;
+    /* get object properties of connector, CRTC and plane */
+    if (!getObjectProperties(output->connector, DRM_MODE_OBJECT_CONNECTOR))
+        std::cerr << "Failed to get connector object properties\n";
+    if (!getObjectProperties(output->crtc->crtcObj, DRM_MODE_OBJECT_CRTC))
+        std::cerr << "Failed to get CRTC object properties\n";
+    if (!getObjectProperties(output->plane, DRM_MODE_OBJECT_PLANE))
+        std::cerr << "Failed to get plane object properties\n";
+    std::cout << "=== DRM initialization completed\n";
+    std::cout << "=== Connector: " << output->connector->id
+              << " CRTC: " << output->crtc->crtcObj->id 
+              << " Plane: " << output->plane->id << std::endl;
+    return output;
 }
 
 int DrmDisplay::initDrm(std::string dev_name) {
-  drmModeRes *resources = nullptr;
-  drmModeConnector *connector = nullptr;
-  int ret;
+    drmModeRes *resources = nullptr;
+    drmModeConnector *connector = nullptr;
+    int ret;
   
-  assert(drm);
-  drm->fd = open(dev_name.c_str(), O_RDWR);
-  resources = drmModeGetResources(drm->fd);
-  if (resources == nullptr) {
-    std::cerr << "Failed to get DRM resources " << errno << std::endl;
-    return -1 * errno;
-  }
-  for (int i = 0; i < resources->count_connectors; i++) {
-    connector = drmModeGetConnector(drm->fd, resources->connectors[i]);
-    if (connector && connector->connection == DRM_MODE_CONNECTED) {
-      drm->output = createOutput(connector, resources);
-      if (drm->output) {
-	drmModeFreeConnector(connector);
-	break;
-      }
-      else
-	std::cerr << "Failed to create output from connector " << connector->connector_id;
+    assert(drm);
+    drm->fd = open(dev_name.c_str(), O_RDWR);
+    resources = drmModeGetResources(drm->fd);
+    if (resources == nullptr) {
+        std::cerr << "Failed to get DRM resources " << errno << std::endl;
+        return -1 * errno;
     }
-    drmModeFreeConnector(connector);
-  }
-  drmModeFreeResources(resources);
-  return 0;
+    for (int i = 0; i < resources->count_connectors; i++) {
+        connector = drmModeGetConnector(drm->fd, resources->connectors[i]);
+        if (connector && connector->connection == DRM_MODE_CONNECTED) {
+            drm->output = createOutput(connector, resources);
+            if (drm->output) {
+                /* 1 output is enough as of now */
+                break;
+                
+            }
+            else
+                std::cerr << "Failed to create output from connector "
+                          << connector->connector_id;
+        }
+        drmModeFreeConnector(connector);
+    }
+    drmModeFreeResources(resources);
+    return 0;
 }
 
 static void drmFBDestroyCallback(struct gbm_bo* bo, void* data) {
-  struct drmFB* fb = static_cast<struct drmFB*>(data);
-  int fd = gbm_device_get_fd(gbm_bo_get_device(bo));
-  if (fb->fbID)
-    drmModeRmFB(fd, fb->fbID);
-  delete fb;
+    struct drmFB* fb = static_cast<struct drmFB*>(data);
+    int fd = gbm_device_get_fd(gbm_bo_get_device(bo));
+    if (fb->id)
+        drmModeRmFB(fd, fb->id);
+    delete fb;
 }
 
 struct drmFB* DrmDisplay::drmFBGetFromBO(struct gbm_bo* bo) {
-  struct drmFB *fb = static_cast<struct drmFB*>(gbm_bo_get_user_data(bo));
-  uint32_t width, height, format;
-  uint32_t strides[4] = {0}, handles[4] = {0}, offsets[4] = {0};
-  int ret;
+    struct drmFB *fb = static_cast<struct drmFB*>(gbm_bo_get_user_data(bo));
+    uint32_t width, height, format;
+    uint32_t strides[4] = {0}, handles[4] = {0}, offsets[4] = {0}, flags = 0;
+    int ret = -1;
 
-  if (fb)
+    if (fb)
+        return fb;
+
+    fb = static_cast<struct drmFB*>(calloc(1, sizeof(struct drmFB*)));
+    fb->bo = bo;
+    width = gbm_bo_get_width(bo);
+    height = gbm_bo_get_height(bo);
+    format = gbm_bo_get_format(bo);
+    /* get bo data */
+    if (gbm_bo_get_handle_for_plane && gbm_bo_get_modifier &&
+        gbm_bo_get_plane_count && gbm_bo_get_stride_for_plane &&
+        gbm_bo_get_offset) {
+        uint64_t modifiers[4] = {0};
+        modifiers[0] = gbm_bo_get_modifier(bo);
+        const int num_planes = gbm_bo_get_plane_count(bo);
+        for (int i = 0; i < num_planes; i++) {
+            handles[i] = gbm_bo_get_handle_for_plane(bo, i).u32;
+            strides[i] = gbm_bo_get_stride_for_plane(bo, i);
+            offsets[i] = gbm_bo_get_offset(bo, i);
+            modifiers[i] = modifiers[0];
+        }
+
+        if (modifiers[0] && modifiers[0] != DRM_FORMAT_MOD_INVALID) {
+            flags = DRM_MODE_FB_MODIFIERS;
+            std::cout << "Using modifier " << modifiers[0] << std::endl;
+        }
+        ret = drmModeAddFB2WithModifiers(drm->fd, width, height,
+                                         format, handles, strides, offsets,
+                                         modifiers, &fb->id, flags);
+    }
+
+
+    if (ret) {
+        if (flags)
+            std::cerr <<  "FB creation with modifiers failed\n";
+
+        memcpy(handles, 0, 16);
+        handles[0] = gbm_bo_get_handle(bo).u32;
+        memcpy(strides, 0, 16);
+        strides[0] = gbm_bo_get_stride(bo);
+        memset(offsets, 0, 16);
+        ret = drmModeAddFB2(drm->fd, width, height, format,
+                            handles, strides, offsets, &fb->id, 0);
+    }
+
+    if (ret) {
+        std::cerr << "Failed to create FB: " << strerror(errno) << std::endl;
+        delete fb;
+        return nullptr;
+    }
+
+    gbm_bo_set_user_data(bo, fb, drmFBDestroyCallback);
+    std::cout << "FB created " << fb->id << std::endl;
     return fb;
-
-  fb = static_cast<struct drmFB*>(calloc(1, sizeof(struct drmFB*)));
-  fb->bo = bo;
-  /* get bo data */
-  width = gbm_bo_get_width(bo);
-  height = gbm_bo_get_height(bo);
-  format = gbm_bo_get_format(bo);
-  handles[0] = gbm_bo_get_handle(bo).u32;
-  strides[0] = gbm_bo_get_stride(bo);
-  ret = drmModeAddFB2(drm->fd, width, height, format,
-		      handles, strides, offsets,
-                      &fb->fbID, 0);
-  if (ret) {
-    std::cerr << "Failed to create FB: " << strerror(errno) << std::endl;
-    delete fb;
-    return nullptr;
-  }
-  gbm_bo_set_user_data(bo, fb, drmFBDestroyCallback);
-  return fb;
 }
 
 static void pageFlipHandler(int fd, unsigned int frame, unsigned int sec,
-				 unsigned int usec, void* data)
+                            unsigned int usec, void* data)
 {
-  int* pendingFlip = static_cast<int*>(data);
-  *pendingFlip = 0;
+    int* pendingFlip = static_cast<int*>(data);
+    *pendingFlip = 0;
 }
 
 int DrmDisplay::pageFlip() {
-  fd_set fds;
-  struct gbm_bo* bo;
-  uint32_t crtcId;
-  int ret, pendingFlip = 1;
-  drmEventContext eventCtx = {
-    .version = 2,
-    .page_flip_handler = pageFlipHandler,
-  };
-  crtcId = drm->output->crtc->crtcObj->id;
-  if (firstFlip) {
+    fd_set fds;
+    struct gbm_bo* bo;
     struct drmOutput* output = drm->output;
-    gbm->bo = gbm_surface_lock_front_buffer(gbm->surface);
-    output->fb = drmFBGetFromBO(gbm->bo);
-    ret = drmModeSetCrtc(drm->fd, crtcId, output->fb->fbID,
-			 0, 0, &output->connector->id, 1, output->mode);
-    if (ret) {
-      std::cerr << "failed to set mode " << strerror(errno) << std::endl;
-      return ret;
+    uint32_t crtcId, connId;
+    int ret, pendingFlip = 1;
+    drmEventContext eventCtx = {
+        .version = 2,
+        .page_flip_handler = pageFlipHandler,
+    };
+    crtcId = output->crtc->crtcObj->id;
+    connId = output->connector->id;
+    if (firstFlip) {
+        firstFlip = false;
+        gbm->bo = gbm_surface_lock_front_buffer(gbm->surface);
+        output->fb = drmFBGetFromBO(gbm->bo);
+        if (!output->fb) {
+            std::cerr << "failed to get FB " << strerror(errno) << std::endl;
+            return ret;
+        }
+        std::cout << "Connector ID: " << connId << ", "
+                  << "CRTC ID:" << crtcId << ", "
+                  << "FB ID: " << output->fb->id << std::endl;
+        ret = drmModeSetCrtc(drm->fd, crtcId, output->fb->id,
+                             0, 0, &connId, 1, output->mode);
+        if (ret) {
+            std::cerr << "failed to set mode " << errno << std::endl;
+            return ret;
+        }
     }
-    firstFlip = false;
-  }
-  else {
-    struct drmOutput* output = drm->output;
-    struct gbm_bo* next_bo;
-    next_bo = gbm_surface_lock_front_buffer(gbm->surface);
-    output->fb = drmFBGetFromBO(next_bo);
-    if (!output->fb) {
-      std::cerr << "failed to set mode " << strerror(errno) << std::endl;
-      return ret;
+    else {
+        struct gbm_bo* next_bo;
+        next_bo = gbm_surface_lock_front_buffer(gbm->surface);
+        output->fb = drmFBGetFromBO(next_bo);
+        if (!output->fb) {
+            std::cerr << "failed to get FB " << strerror(errno) << std::endl;
+            return ret;
+        }
+        pendingFlip = 1;
+        ret = drmModePageFlip(drm->fd, crtcId, output->fb->id,
+                              DRM_MODE_PAGE_FLIP_EVENT, &pendingFlip);
+        while (pendingFlip) {
+            FD_ZERO(&fds);
+            FD_SET(0, &fds);
+            FD_SET(drm->fd, &fds);
+            ret = select(drm->fd + 1, &fds, nullptr, nullptr, nullptr);
+            if (ret < 0) {
+                std::cerr << "select err: " << strerror(errno) << std::endl;
+                return ret;
+            } else if (ret == 0) {
+                std::cerr << "select timeout\n";
+                return -1;
+            } else if (FD_ISSET(0, &fds)) {
+                std::cerr << "User interrupt\n";
+                return -1;
+            }
+            drmHandleEvent(drm->fd, &eventCtx);
+        }
+        gbm_surface_release_buffer(gbm->surface, gbm->bo);
+        gbm->bo = next_bo;
     }
-    pendingFlip = 1;
-    ret = drmModePageFlip(drm->fd, crtcId, output->fb->fbID,
-                          DRM_MODE_PAGE_FLIP_EVENT, &pendingFlip);
-    while (pendingFlip) {
-      FD_ZERO(&fds);
-      FD_SET(0, &fds);
-      FD_SET(drm->fd, &fds);
-      ret = select(drm->fd + 1, &fds, nullptr, nullptr, nullptr);
-      if (ret < 0) {
-	std::cerr << "select err: " << strerror(errno) << std::endl;
-	return ret;
-      } else if (ret == 0) {
-	std::cerr << "select timeout\n";
-	return -1;
-      } else if (FD_ISSET(0, &fds)) {
-	std::cerr << "User interrupt\n";
-	return -1;
-      }
-      drmHandleEvent(drm->fd, &eventCtx);
-    }
-    gbm_surface_release_buffer(gbm->surface, gbm->bo);
-    gbm->bo = next_bo;
-  }
-  return 0;
+    return 0;
 }
 
 int DrmDisplay::initGbmSurface(uint64_t modifier) {
-  /* ToDo: use gbm_surface_create_with_modifiers in future. */
-  if (!gbm->surface) {
-    gbm->surface = gbm_surface_create(gbm->dev, window_w, window_h, gbm->format,
-				      GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
-  }
-  if (!gbm->surface) {
-    std::cerr << "Failed to create GBM surface\n";
-    return -1;
-  }
-  return 0;
+    /* ToDo: use gbm_surface_create_with_modifiers in future. */
+	if (gbm_surface_create_with_modifiers) {
+		gbm->surface = 
+            gbm_surface_create_with_modifiers(gbm->dev, window_w,
+                                              window_h, gbm->format,
+                                              &modifier, 1);
+	}
+
+    if (!gbm->surface) {
+        gbm->surface = gbm_surface_create(gbm->dev, window_w, window_h, gbm->format,
+                                          GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+    }
+    if (!gbm->surface) {
+        std::cerr << "Failed to create GBM surface\n";
+        return -1;
+    }
+    return 0;
 }
 
 int DrmDisplay::initGbm(uint32_t format, uint64_t modifier) {
-  gbm->dev = gbm_create_device(drm->fd);
-  if (!gbm->dev) {
-    std::cerr << "Failed to create GBM device\n";
-    return -1;
-  }
-  gbm->format = format;
-  gbm->surface = nullptr;
-  return initGbmSurface(modifier);
+    gbm->dev = gbm_create_device(drm->fd);
+    if (!gbm->dev) {
+        std::cerr << "Failed to create GBM device\n";
+        return -1;
+    }
+    gbm->format = format;
+    gbm->surface = nullptr;
+    return initGbmSurface(modifier);
 }

@@ -21,6 +21,8 @@ if(BUILD_FW MATCHES DRM)
     EglContext.cpp
     ContextFactory.cpp)
   set(CONTEXT_LIB
+    EGL
+    GLESv2
     drm
     gbm)
 elseif()

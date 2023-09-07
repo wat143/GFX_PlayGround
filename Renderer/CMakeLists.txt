@@ -2,7 +2,11 @@ cmake_minimum_required( VERSION 3.16.3 )
 
 project(Renderer)
 
-add_executable(simple_teapot simple_teapot.cpp)
+if(BUILD_FW MATCHES DISPMANX)
+  add_compile_option(-DDISPMANX)
+endif()
+
+add_executable(simple_teapot simple_triangle.cpp)
 target_include_directories(simple_teapot
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
@@ -19,10 +23,20 @@ target_link_libraries(simple_teapot
   ImageLoader
   assimp
   Mesh
-  brcmEGL
-  brcmGLESv2
   Context
   Shader
   Object
 )
 
+if(BUILD_FW MATCHES DISPMANX)
+  target_link_libraries(simple_teapot
+    brcmEGL
+    brcmGLESv2
+)    
+else()
+  target_link_libraries(simple_teapot
+    EGL
+    GLESv2
+)    
+
+endif()

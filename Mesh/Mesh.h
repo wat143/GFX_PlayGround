@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <string>
-
+#include <iostream>
 class Mesh {
  protected:
   std::vector<float> vertex_data;
@@ -29,10 +29,10 @@ class Mesh {
   float* getUV() { return uv_data.data(); }
   unsigned short* getIndex() { return index_data.data(); }
   void updateVertexPos(float* data, int size) {
-    vertex_data.clear();
-    vertex_data.resize(size);
-    for (int i = 0; i < size; i++)
-      vertex_data[i] = data[i];
+      vertex_data.clear();
+      vertex_data.resize(size);
+      for (int i = 0; i < size; i++)
+          vertex_data[i] = data[i];
   }
   void updateVertexColor(float* data, int size) {
     vertex_color.clear();
