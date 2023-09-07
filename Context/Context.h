@@ -15,6 +15,7 @@ public:
     virtual void* getSurface()=0;
     virtual int makeCurrent()=0;
     virtual int swapBuffers()=0;
+    void getMode(unsigned int& w, unsigned int& h) { Disp->getMode(w, h); }
 };
 
 #endif

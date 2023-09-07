@@ -21,6 +21,7 @@ private:
 public:
     PiGLObject(const char*, const char*,
                unsigned int, unsigned int, unsigned int, unsigned int, int fwType);
+    PiGLObject(const char*, const char*, int fwType);
     ~PiGLObject();
     bool prepare();
     bool activate();

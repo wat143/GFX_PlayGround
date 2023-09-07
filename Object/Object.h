@@ -12,10 +12,10 @@
 
 class Object {
 protected:
-    const unsigned int start_x;
-    const unsigned int start_y;
-    const unsigned int width;
-    const unsigned int height;
+    unsigned int start_x;
+    unsigned int start_y;
+    unsigned int width;
+    unsigned int height;
     Mesh* mesh;
     std::shared_ptr<Context> ctxt;
     std::shared_ptr<ContextSingleton> singleton;
@@ -28,6 +28,9 @@ public:
     Object(const char*, const char*,
            unsigned int x, unsigned int y,
            unsigned int w, unsigned int h, int fwType):start_x(x), start_y(y), width(w), height(h){
+        mesh = nullptr;
+    };
+    Object(const char*, const char*, int fwType) {
         mesh = nullptr;
     };
     virtual ~Object(){

@@ -27,6 +27,28 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
     shader = new GLShader(vs, fs);
 }
 
+PiGLObject::PiGLObject(const char* vs,const char* fs, int fwType)
+    :Object(vs, fs, fwType)
+{
+    singleton = ContextSingleton::getInstance();
+    if (singleton == nullptr) {
+        ContextFactory* ctxtFactory = new ContextFactory();
+        if (fwType == DispmanX)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
+        else if (fwType == DRM)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(DRM));
+        ContextSingleton::createInstance(ctxt);
+        singleton = ContextSingleton::getInstance();
+        delete ctxtFactory;
+    }
+    else
+        ctxt = singleton->getContext();
+    ctxt->getMode(width, height);
+    start_x = 0;
+    start_y = 0;
+    shader = new GLShader(vs, fs);
+}
+
 PiGLObject::~PiGLObject() {}
 
 bool PiGLObject::prepare() {

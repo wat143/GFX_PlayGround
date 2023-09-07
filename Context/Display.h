@@ -17,6 +17,10 @@ public:
     virtual void* getDisplayDev()=0;
     virtual int pageFlip()=0;
     int getFWType() { return FWType; };
+    void getMode(unsigned int& w, unsigned int& h) {
+        w = window_w;
+        h = window_h;
+    }
 };
 
 #endif

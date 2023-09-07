@@ -68,7 +68,7 @@ int main() {
         " gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);"
         "}";
     unsigned int counter = 0;
-    Object* object = new PiGLObject(vshader_source, fshader_source, 0, 0, 640, 480, DRM);
+    Object* object = new PiGLObject(vshader_source, fshader_source, DRM);
     Mesh* mesh = new AssimpMesh();
     std::cout << "Prepare mesh\n";
     mesh->updateVertexPos(vertex, 9);
