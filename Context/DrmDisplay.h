@@ -16,7 +16,15 @@
 /* Refered kmscube: https://gitlab.freedesktop.org/mesa/kmscube */
 /****************************************************************/
 
+/*** GBM ***/
+struct gbm {
+  struct gbm_device* dev;
+  struct gbm_surface* surface;
+  struct gbm_bo* bo;
+  uint32_t format;
+};
 
+/*** DRM ***/
 /* Note:Legacy commit is the first target and props are not required. */
 /*      Prepare for atomic commit expansion */
 struct drmObject {
@@ -31,7 +39,7 @@ struct drmCrtc {
 };
 
 struct drmFB {
-  uint32_t fbID;
+  uint32_t id;
   struct gbm_bo* bo;
 };
 
@@ -41,19 +49,12 @@ struct drmOutput {
   struct drmCrtc* crtc;
   struct drmObject* plane;
   struct drmFB* fb;
-  uint32_t blob_id;
+  uint32_t blob_id; // used for mode setup in atomic commit
 };
 
 struct drm {
   int fd;
   struct drmOutput *output;
-};
-
-struct gbm {
-  struct gbm_device* dev;
-  struct gbm_surface* surface;
-  struct gbm_bo* bo;
-  uint32_t format;
 };
 
 class DrmDisplay : public NativeDisplay {
@@ -72,9 +73,6 @@ class DrmDisplay : public NativeDisplay {
   /* GBM related functions */
   int initGbm(uint32_t format, uint64_t modifier);
   int initGbmSurface(uint64_t modifier);
- protected:
-  unsigned int window_w;
-  unsigned int window_h;
  public:
   DrmDisplay(int type);
   ~DrmDisplay();

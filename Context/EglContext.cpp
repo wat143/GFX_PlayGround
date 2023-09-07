@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cassert>
 #include "EglContext.h"
 #include "EGL/egl.h"
@@ -17,7 +18,7 @@ EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
       EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
       EGL_NONE
    };
-   
+
   const EGLint context_attributes[] = 
    {
       EGL_CONTEXT_CLIENT_VERSION, 2,
@@ -35,41 +36,39 @@ EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
   assert(display != EGL_NO_DISPLAY);
 
    // Initialize the EGL display connection
-   ret = eglInitialize(display, nullptr, nullptr);
-   assert(ret != EGL_FALSE);
+  ret = eglInitialize(display, nullptr, nullptr);
+  assert(ret != EGL_FALSE);
 
-   // Get an appropriate EGL frame buffer configuration
-   EGLConfig config;
-   ret = eglChooseConfig(display, attribute_list, &config, 1, &num_config);
-   assert(ret != EGL_FALSE);
+  // Get an appropriate EGL frame buffer configuration
+  EGLConfig config;
+  ret = eglChooseConfig(display, attribute_list, &config, 1, &num_config);
+  assert(ret != EGL_FALSE);
 
-   // Bind GLESv2
-   if (API == OpenGLESv2)
-     ret = eglBindAPI(EGL_OPENGL_ES_API);
-   else
-     ret = EGL_FALSE;
-   assert(ret != EGL_FALSE);
+  // Bind GLESv2
+  if (API == OpenGLESv2)
+      ret = eglBindAPI(EGL_OPENGL_ES_API);
+  else
+      ret = EGL_FALSE;
+  assert(ret != EGL_FALSE);
    
-   // Create an EGL rendering context
-   if (fwType == DRM)
-     context =
-       eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
-   else
-     context =
-       eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
-   assert(context != EGL_NO_CONTEXT);
+  // Create an EGL rendering context
+  if (fwType == DRM)
+      context =
+          eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
+  else
+      context =
+          eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
+  assert(context != EGL_NO_CONTEXT);
 
-   // Create an EGL window surface
-   if (fwType == DispmanX) {
-     EGLNativeWindowType* nativewindow =
-       static_cast<EGLNativeWindowType*>(disp->getNativeWindow());
-     surface = eglCreateWindowSurface(display, config, *nativewindow, nullptr);
-   }
-   else
-     surface = EGL_NO_SURFACE;
-   assert(surface != EGL_NO_SURFACE);
-   eglMakeCurrent(display, surface, surface, context);
+  // Create an EGL window surface
+  surface = eglCreateWindowSurface(display,
+                                   config,
+                                   reinterpret_cast<EGLNativeWindowType>(disp->getNativeWindow()),
+                                   nullptr);
+  assert(surface != EGL_NO_SURFACE);
+  eglMakeCurrent(display, surface, surface, context);
 }
+
 EglContext::~EglContext(){
   // Clear Display state
   if (fwType != DRM)

@@ -17,18 +17,19 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
+#ifdef DISPMANX
 #include <revision.h>
+#endif
 
 #include "AssimpMesh.h"
 #include "Context.h"
-#include "PiContextFactory.h"
 #include "GLShader.h"
 #include "Object.h"
 #include "PiGLObject.h"
 
 #define TEAPOT_OBJ_PATH "/home/pi/work/OpenGL/Binaries/teapot.obj"
 #define MONKEY_OBJ_PATH "/home/pi/work/OpenGL/Binaries/monkey.obj"
-#define TEX_FILE_PATH "/opt/vc/src/hello_pi/simple_teapot/Gaudi_128_128.raw"
+#define TEX_FILE_PATH "/home/pi/work/GFX_PlayGround/Renderer/Gaudi_128_128.raw"
 #define check() assert(glGetError() == 0)
 
 glm::vec3 lightDir = {3.0, 2.0, 3.0};
@@ -116,7 +117,7 @@ void initGL(Object* object, GLuint tex) {
     fprintf(stderr, "Failed to add uniform invMatrix\n");
     return;
   }
-  if (!object->addUniform("eyePos")) {
+  if (!object->addUniform("eyeDir")) {
     fprintf(stderr, "Failed to add uniform eyePos\n");
     return;
   }
@@ -222,6 +223,7 @@ int main() {
 
   //Fragment Shader
   const GLchar *fshader_source =
+    "precision mediump float;"
     "uniform sampler2D tex;"
     "uniform mat4 invMatrix;"
     "uniform vec3 eyeDir;"
@@ -247,9 +249,9 @@ int main() {
   int terminate = 0;
   unsigned int counter = 0;
   Object* object = new PiGLObject(vshader_source, fshader_source,
-				  0, 0, 1920, 1080);
+				  0, 0, 600, 480);
   Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source,
-				  0, 0, 1920, 1080);
+				  0, 0, 600, 480);
   Mesh* meshTeapot = new AssimpMesh(TEAPOT_OBJ_PATH);
   Mesh* meshMonkey = new AssimpMesh(MONKEY_OBJ_PATH);
 

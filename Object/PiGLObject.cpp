@@ -14,7 +14,8 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
   singleton = ContextSingleton::getInstance();
   if (singleton == nullptr) {
     ContextFactory* ctxtFactory = new ContextFactory();
-    ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
+    //    ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
+    ctxt = std::shared_ptr<Context>(ctxtFactory->create(DRM));
     ContextSingleton::createInstance(ctxt);
     singleton = ContextSingleton::getInstance();
     delete ctxtFactory;
@@ -226,6 +227,7 @@ bool PiGLObject::addUniform(std::string str) {
 }
 
 bool PiGLObject::updateUniformVec3(std::string uni, glm::vec3& vec ) {
+    std::cout << uni << ", " << uniforms[uni] << std::endl;
   if (!uniforms.count(uni))
     return false;
   glUniform3fv(uniforms[uni], 3, &vec[0]);
