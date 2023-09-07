@@ -8,14 +8,16 @@
 #include "ImageLoader.h"
 
 PiGLObject::PiGLObject(const char* vs,const char* fs,
-                       unsigned int x, unsigned int y, unsigned int w, unsigned int h)
-    :Object(vs, fs, x, y, w, h)
+                       unsigned int x, unsigned int y, unsigned int w, unsigned int h, int fwType)
+    :Object(vs, fs, x, y, w, h, fwType)
 {
     singleton = ContextSingleton::getInstance();
     if (singleton == nullptr) {
         ContextFactory* ctxtFactory = new ContextFactory();
-        //    ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
-        ctxt = std::shared_ptr<Context>(ctxtFactory->create(DRM));
+        if (fwType == DispmanX)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
+        else if (fwType == DRM)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(DRM));
         ContextSingleton::createInstance(ctxt);
         singleton = ContextSingleton::getInstance();
         delete ctxtFactory;

@@ -26,6 +26,7 @@
 #include "GLShader.h"
 #include "Object.h"
 #include "PiGLObject.h"
+#include "Utils.h"
 
 #define TEAPOT_OBJ_PATH "/home/pi/work/OpenGL/Binaries/teapot.obj"
 #define MONKEY_OBJ_PATH "/home/pi/work/OpenGL/Binaries/monkey.obj"
@@ -249,9 +250,9 @@ int main() {
     int terminate = 0;
     unsigned int counter = 0;
     Object* object = new PiGLObject(vshader_source, fshader_source,
-                                    0, 0, 600, 480);
+                                    0, 0, 600, 480, DRM);
     Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source,
-                                             0, 0, 600, 480);
+                                             0, 0, 600, 480, DRM);
     Mesh* meshTeapot = new AssimpMesh(TEAPOT_OBJ_PATH);
     Mesh* meshMonkey = new AssimpMesh(MONKEY_OBJ_PATH);
 

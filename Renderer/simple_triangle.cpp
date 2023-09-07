@@ -10,6 +10,7 @@
 #include "GLShader.h"
 #include "Object.h"
 #include "PiGLObject.h"
+#include "Utils.h"
 
 static void initGL(Object* object) {
     std::cout << "add vertex data\n";
@@ -67,7 +68,7 @@ int main() {
         " gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);"
         "}";
     unsigned int counter = 0;
-    Object* object = new PiGLObject(vshader_source, fshader_source, 0, 0, 640, 480);
+    Object* object = new PiGLObject(vshader_source, fshader_source, 0, 0, 640, 480, DRM);
     Mesh* mesh = new AssimpMesh();
     std::cout << "Prepare mesh\n";
     mesh->updateVertexPos(vertex, 9);

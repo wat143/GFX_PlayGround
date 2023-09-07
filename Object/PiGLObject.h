@@ -20,7 +20,7 @@ private:
     GLuint indexBuf;
 public:
     PiGLObject(const char*, const char*,
-               unsigned int, unsigned int, unsigned int, unsigned int);
+               unsigned int, unsigned int, unsigned int, unsigned int, int fwType);
     ~PiGLObject();
     bool prepare();
     bool activate();

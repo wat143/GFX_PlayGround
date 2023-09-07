@@ -27,7 +27,7 @@ protected:
 public:
     Object(const char*, const char*,
            unsigned int x, unsigned int y,
-           unsigned int w, unsigned int h):start_x(x), start_y(y), width(w), height(h){
+           unsigned int w, unsigned int h, int fwType):start_x(x), start_y(y), width(w), height(h){
         mesh = nullptr;
     };
     virtual ~Object(){
