@@ -3,23 +3,23 @@
 
 // Framework type
 enum FrameworkType {
-      DispmanX = 1,
-      DRM
+    DispmanX = 1,
+    DRM
 };
 
 // API
 enum APIType {
-      OpenGLESv2 = 1,
-      Vulkan
+    OpenGLESv2 = 1,
+    Vulkan
 };
 
 // Attribute type
 enum AttrType {
-      VERTEX_DATA = 1,
-      VERTEX_COLOR,
-      VERTEX_NORMAL,
-      UV_DATA,
-      ATTR_TYPE_MAX
+    VERTEX_DATA = 1,
+    VERTEX_COLOR,
+    VERTEX_NORMAL,
+    UV_DATA,
+    ATTR_TYPE_MAX
 };
 
 #endif

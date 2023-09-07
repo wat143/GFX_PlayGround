@@ -8,10 +8,10 @@ enum ImageType {
 };
 
 class ImageLoader {
- public:
-  ImageLoader(){}
-  ~ImageLoader(){}
-  char* loadImageFromFile(const char*, int, int, int);
+public:
+    ImageLoader(){}
+    ~ImageLoader(){}
+    char* loadImageFromFile(const char*, int, int, int);
 };
 
 #endif

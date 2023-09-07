@@ -8,14 +8,14 @@
 #include "Mesh.h"
 
 class AssimpMesh : public Mesh {
- private:
-  void processMesh(const aiMesh* mesh);
-  void processNode(const aiScene* scene);
- public:
-  AssimpMesh();
-  AssimpMesh(std::string path);
-  ~AssimpMesh();
-  void import();
+private:
+    void processMesh(const aiMesh* mesh);
+    void processNode(const aiScene* scene);
+public:
+    AssimpMesh();
+    AssimpMesh(std::string path);
+    ~AssimpMesh();
+    void import();
 };
 
 #endif
