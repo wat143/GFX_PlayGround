@@ -65,7 +65,7 @@ void initGL_Offscreen(Object* object) {
         fprintf(stderr, "Failed to add uniform invMatrix\n");
         return;
     }
-    if (!object->addUniform("eyePos")) {
+    if (!object->addUniform("eyeDir")) {
         fprintf(stderr, "Failed to add uniform eyePos\n");
         return;
     }
@@ -249,10 +249,8 @@ int main() {
         "}";
     int terminate = 0;
     unsigned int counter = 0;
-    Object* object = new PiGLObject(vshader_source, fshader_source,
-                                    0, 0, 600, 480, DRM);
-    Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source,
-                                             0, 0, 600, 480, DRM);
+    Object* object = new PiGLObject(vshader_source, fshader_source, DRM);
+    Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source, DRM);
     Mesh* meshTeapot = new AssimpMesh(TEAPOT_OBJ_PATH);
     Mesh* meshMonkey = new AssimpMesh(MONKEY_OBJ_PATH);
 
