@@ -251,10 +251,9 @@ bool PiGLObject::addUniform(std::string str) {
 }
 
 bool PiGLObject::updateUniformVec3(std::string uni, glm::vec3& vec ) {
-    std::cout << uni << ", " << uniforms[uni] << std::endl;
     if (!uniforms.count(uni))
         return false;
-    glUniform3fv(uniforms[uni], 3, &vec[0]);
+    glUniform3fv(uniforms[uni], 1, &vec[0]);
     GL_ERROR_CHECK();
     return true;
 }
