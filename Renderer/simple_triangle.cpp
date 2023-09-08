@@ -18,6 +18,11 @@ static void initGL(Object* object) {
         std::cerr << "Failed to add vertex data\n";
         return;
     }
+    std::cout << "add vertex color\n";
+    if (!object->addAttributeByType("color", VERTEX_COLOR)) {
+        std::cerr << "Failed to add vertex data\n";
+        return;
+    }
     std::cout << "add uniform\n";
     if (!object->addUniform("mvp")) {
         std::cerr << "Failed to add uniform mvp\n";;
@@ -52,25 +57,35 @@ int main() {
         -1.0, -1.0,  0.0,
         1.0, -1.0,  0.0
     };
+    float color[] = {
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0
+    };
     unsigned short index[] = {
         0, 1, 2
     };
     const GLchar* vshader_source = 
         "attribute vec3 vertexModelSpace;"
+        "attribute vec3 color;"
         "uniform mat4 mvp;"
+        "varying vec3 vColor;"
         "void main(void) {"
+        " vColor = color;"
         " gl_Position = mvp * vec4(vertexModelSpace, 1.0);"
         "}";
     const GLchar* fshader_source =
         "precision mediump float;"
+        "varying vec3 vColor;"
         "void main(void) {"
-        " gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);"
+        " gl_FragColor = vec4(vColor, 1.0);"
         "}";
     unsigned int counter = 0;
     Object* object = new PiGLObject(vshader_source, fshader_source, DRM);
     Mesh* mesh = new AssimpMesh();
     std::cout << "Prepare mesh\n";
     mesh->updateVertexPos(vertex, 9);
+    mesh->updateVertexColor(color, 9);
     mesh->updateIndex(index, 3);
     object->addMesh(mesh);
     object->prepare();
