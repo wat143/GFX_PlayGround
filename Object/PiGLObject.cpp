@@ -52,7 +52,6 @@ PiGLObject::PiGLObject(const char* vs,const char* fs, int fwType)
 PiGLObject::~PiGLObject() {}
 
 bool PiGLObject::prepare() {
-    glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     shader->initShader();
     // Setup viewport
