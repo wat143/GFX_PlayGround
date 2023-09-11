@@ -4,7 +4,8 @@
 // Framework type
 enum FrameworkType {
     DispmanX = 1,
-    DRM
+    Drm,
+    Wayland
 };
 
 // API

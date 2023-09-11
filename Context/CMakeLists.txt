@@ -12,9 +12,8 @@ if(BUILD_FW MATCHES DISPMANX)
     brcmEGL
     brcmGLESv2
     bcm_host)
-  add_compile_option(-DDISPMANX)
-endif()
-if(BUILD_FW MATCHES DRM)
+  add_compile_options(-DDISPMANX=1)
+elseif(BUILD_FW MATCHES DRM)
   set(CONTEXT_SOURCE
     ContextSingleton.cpp
     DrmDisplay.cpp
@@ -25,7 +24,20 @@ if(BUILD_FW MATCHES DRM)
     GLESv2
     drm
     gbm)
-elseif()
+  add_compile_options(-DDRM=1)
+elseif(BUILD_FW MATCHES WAYLAND)
+  set(CONTEXT_SOURCE
+    ContextSingleton.cpp
+    WaylandDisplay.cpp
+    EglContext.cpp
+    ContextFactory.cpp)
+  set(CONTEXT_LIB
+    EGL
+    GLESv2
+    wayland-client
+    wayland-egl)
+  add_compile_options(-DWAYLAND=1)
+else()
   message(FATAL, "No FW is set")
 endif()
 

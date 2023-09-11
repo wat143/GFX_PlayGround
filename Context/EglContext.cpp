@@ -52,7 +52,7 @@ EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
     assert(ret != EGL_FALSE);
    
     // Create an EGL rendering context
-    if (fwType == DRM)
+    if (fwType == Drm)
         context =
             eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
     else
@@ -71,7 +71,7 @@ EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
 
 EglContext::~EglContext(){
     // Clear Display state
-    if (fwType != DRM)
+    if (fwType != Drm)
         eglSwapBuffers(display, surface);
 
     // Release resources
@@ -94,7 +94,7 @@ int EglContext::makeCurrent() {
 
 int EglContext::swapBuffers() {
     int ret;
-    if (fwType == DRM) {
+    if (fwType == Drm) {
         ret = eglSwapBuffers(display, surface);
         nativeDisp->pageFlip();
     }

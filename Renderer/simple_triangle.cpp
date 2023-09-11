@@ -81,7 +81,12 @@ int main() {
         " gl_FragColor = vec4(vColor, 1.0);"
         "}";
     unsigned int counter = 0;
-    Object* object = new PiGLObject(vshader_source, fshader_source, DRM);
+#ifdef DRM
+    Object* object = new PiGLObject(vshader_source, fshader_source, Drm);
+#endif
+#ifdef WAYLAND
+    Object* object = new PiGLObject(vshader_source, fshader_source, 0, 0, 500, 500, Wayland);
+#endif
     Mesh* mesh = new AssimpMesh();
     std::cout << "Prepare mesh\n";
     mesh->updateVertexPos(vertex, 9);
