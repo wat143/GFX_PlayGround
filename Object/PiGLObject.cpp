@@ -16,8 +16,10 @@ PiGLObject::PiGLObject(const char* vs,const char* fs,
         ContextFactory* ctxtFactory = new ContextFactory();
         if (fwType == DispmanX)
             ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
-        else if (fwType == DRM)
-            ctxt = std::shared_ptr<Context>(ctxtFactory->create(DRM));
+        else if (fwType == Drm)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(Drm));
+        else if (fwType == Wayland)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(Wayland));
         ContextSingleton::createInstance(ctxt);
         singleton = ContextSingleton::getInstance();
         delete ctxtFactory;
@@ -35,8 +37,10 @@ PiGLObject::PiGLObject(const char* vs,const char* fs, int fwType)
         ContextFactory* ctxtFactory = new ContextFactory();
         if (fwType == DispmanX)
             ctxt = std::shared_ptr<Context>(ctxtFactory->create(DispmanX));
-        else if (fwType == DRM)
-            ctxt = std::shared_ptr<Context>(ctxtFactory->create(DRM));
+        else if (fwType == Drm)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(Drm));
+        else if (fwType == Wayland)
+            ctxt = std::shared_ptr<Context>(ctxtFactory->create(Wayland));
         ContextSingleton::createInstance(ctxt);
         singleton = ContextSingleton::getInstance();
         delete ctxtFactory;

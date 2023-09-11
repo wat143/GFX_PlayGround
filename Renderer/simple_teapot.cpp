@@ -249,8 +249,15 @@ int main() {
         "}";
     int terminate = 0;
     unsigned int counter = 0;
-    Object* object = new PiGLObject(vshader_source, fshader_source, DRM);
-    Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source, DRM);
+#ifdef DRM
+    Object* object = new PiGLObject(vshader_source, fshader_source, Drm);
+    Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source, Drm);
+#endif
+#ifdef WAYLAND
+    Object* object = new PiGLObject(vshader_source, fshader_source, 0, 0, 500, 500, Wayland);
+    Object* objectOffscreen =
+        new PiGLObject(vshader_source, fshader_source, 0, 0, 500, 500, Wayland);
+#endif
     Mesh* meshTeapot = new AssimpMesh(TEAPOT_OBJ_PATH);
     Mesh* meshMonkey = new AssimpMesh(MONKEY_OBJ_PATH);
 

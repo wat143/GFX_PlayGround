@@ -4,6 +4,10 @@ project(Renderer)
 
 if(BUILD_FW MATCHES DISPMANX)
   add_compile_option(-DDISPMANX)
+elseif(BUILD_FW MATCHES DRM)
+  add_compile_options(-DDRM=1)
+elseif(BUILD_FW MATCHES WAYLAND)
+  add_compile_options(-DWAYLAND=1)
 endif()
 
 add_executable(simple_teapot simple_teapot.cpp)
@@ -68,7 +72,7 @@ if(BUILD_FW MATCHES DISPMANX)
     brcmGLESv2
 )
 else()
-  target_link_libraries(simple_triangle
+  target_link_libraries(simple_teapot
     EGL
     GLESv2
 )
