@@ -27,6 +27,7 @@ elseif(BUILD_FW MATCHES DRM)
   add_compile_options(-DDRM=1)
 elseif(BUILD_FW MATCHES WAYLAND)
   set(CONTEXT_SOURCE
+    xdg-shell.c
     ContextSingleton.cpp
     WaylandDisplay.cpp
     EglContext.cpp

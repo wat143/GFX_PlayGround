@@ -5,6 +5,7 @@
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
 #include <wayland-egl.h>
+#include "xdg-shell-client-protocol.h"
 
 #include "Utils.h"
 
@@ -16,6 +17,11 @@ struct display {
     struct wl_shell* shell;
     struct wl_shell_surface* shell_surface;
     struct wl_egl_window* egl_window;
+    struct xdg_wm_base* xdg_wm_base;
+    struct xdg_surface* xdg_surface;
+    struct xdg_toplevel* xdg_toplevel;
+    uint32_t width, height;
+    bool configure;
 };
 
 class WaylandDisplay : public NativeDisplay {
