@@ -11,9 +11,9 @@ static void registry_handle_global(void *data, struct wl_registry *registry,
     if (strcmp(interface, "wl_compositor") == 0) {
         display->compositor =
             (struct wl_compositor*)wl_registry_bind(registry, name, &wl_compositor_interface, 1);
-    } else if (strcmp(interface, "wl_shell") == 0) {
-        display->shell =
-            (struct wl_shell*)wl_registry_bind(registry, name, &wl_shell_interface, 1);
+    } else if (strcmp(interface, "xdg_wm_base") == 0) {
+        display->xdg_wm_base =
+            (struct xdg_wm_base*)wl_registry_bind(registry, name, &xdg_wm_base_interface, 1);
     }
 }
 
@@ -27,12 +27,43 @@ static const struct wl_registry_listener registry_listener {
     registry_handle_global_remove
 };
 
-void handle_ping(void *data, struct wl_shell_surface *shell_surface, uint32_t serial) {
-    wl_shell_surface_pong(shell_surface, serial);
+static void
+xdg_wm_base_ping(void *data, struct xdg_wm_base *shell, uint32_t serial)
+{
+	xdg_wm_base_pong(shell, serial);
 }
 
-const struct wl_shell_surface_listener shell_surface_listener = {
-    .ping = handle_ping,
+static const struct xdg_wm_base_listener wm_base_listener = {
+	xdg_wm_base_ping,
+};
+
+static void
+handle_surface_configure(void *data, struct xdg_surface *surface,
+			 uint32_t serial)
+{
+    struct display* display = static_cast<struct display*>(data);
+	xdg_surface_ack_configure(surface, serial);
+    display->configure = true;
+}
+
+static const struct xdg_surface_listener xdg_surface_listener = {
+	handle_surface_configure
+};
+
+static void handle_toplevel_configure(void* data, struct xdg_toplevel* toplevel,
+                                      int32_t width, int32_t height,
+                                      struct wl_array* states) {
+    struct display* display = static_cast<struct display*>(data);
+    display->width = width;
+    display->height = height;
+}
+
+static void
+handle_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel) {}
+
+static const struct xdg_toplevel_listener xdg_toplevel_listener = {
+    handle_toplevel_configure,
+    handle_toplevel_close
 };
 
 WaylandDisplay::WaylandDisplay(int type):NativeDisplay(type){
@@ -56,30 +87,35 @@ WaylandDisplay::WaylandDisplay(int type):NativeDisplay(type){
         return;
     }
 
-    /* create wl_surface and wl_shell */
+    /* create surface */
     display->surface = wl_compositor_create_surface(display->compositor);
-    if (!display->shell) {
-        std::cerr << "Failed to create wl_shell\n";
-        wl_display_disconnect(display->display);
+    xdg_wm_base_add_listener(display->xdg_wm_base, &wm_base_listener, display);
+    display->xdg_surface =
+        xdg_wm_base_get_xdg_surface(display->xdg_wm_base, display->surface);
+    xdg_surface_add_listener(display->xdg_surface, &xdg_surface_listener, display);
+    if (!display->surface || !display->xdg_surface) {
+        std::cerr << "Failed to create surface\n";
         return;
     }
 
-    display->shell_surface = wl_shell_get_shell_surface(display->shell, display->surface);
-    if (!display->shell_surface) {
-        std::cerr << "Failed to create wl_shell_surface\n";
-        wl_display_disconnect(display->display);
-        return;
-    }
+    /* create xdg_toplevel */
+    display->xdg_toplevel = xdg_surface_get_toplevel(display->xdg_surface);
+    xdg_toplevel_add_listener(display->xdg_toplevel, &xdg_toplevel_listener, display);
+    xdg_toplevel_set_title(display->xdg_toplevel, "Wayland display");
+    xdg_toplevel_set_app_id(display->xdg_toplevel, "wayland.display");
+    xdg_toplevel_set_fullscreen(display->xdg_toplevel, nullptr);
+    xdg_toplevel_set_maximized(display->xdg_toplevel);
 
-    /* Set the title of the window */
-    wl_shell_surface_set_title(display->shell_surface, "Wayland Display");
-    /* Add a listener for the shell surface events (e.g., ping) */
-    wl_shell_surface_add_listener(display->shell_surface, &shell_surface_listener, display);
-    // Map the surface, making it visible
-    wl_shell_surface_set_toplevel(display->shell_surface);
+    /* wait for configure event to get initial surface state */
+    display->configure = false;
+    while (!display->configure) {
+        wl_display_dispatch(display->display);
+    }
+    window_w = display->width;
+    window_h = display->height;
 
     /* create wl_egl_window */
-    display->egl_window = wl_egl_window_create(display->surface, 1024, 720);
+    display->egl_window = wl_egl_window_create(display->surface, window_w, window_h);
     if (!display->egl_window) {
     std::cerr << "Failed to create wl_egl_window\n";
         wl_display_disconnect(display->display);
