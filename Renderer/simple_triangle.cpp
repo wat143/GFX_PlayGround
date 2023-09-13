@@ -85,7 +85,7 @@ int main() {
     Object* object = new PiGLObject(vshader_source, fshader_source, Drm);
 #endif
 #ifdef WAYLAND
-    Object* object = new PiGLObject(vshader_source, fshader_source, 0, 0, 500, 500, Wayland);
+    Object* object = new PiGLObject(vshader_source, fshader_source, Wayland);
 #endif
     Mesh* mesh = new AssimpMesh();
     std::cout << "Prepare mesh\n";
