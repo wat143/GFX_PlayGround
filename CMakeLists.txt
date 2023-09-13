@@ -10,6 +10,8 @@ elseif(BUILD_FW MATCHES DRM)
   set(GFX_PATH "/usr/include/libdrm")
 endif()
 
+find_package(PkgConfig REQUIRED)
+
 set(CMAKE_SYSROOT $ENV{SYSROOT})
 set(GFX_INCLUDE_PATH ${GFX_PATH}/include)
 set(GFX_LIBRARY_PATH ${GFX_PATH}/lib)
