@@ -31,6 +31,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "wayland-util.h"
+#include "xdg-shell-client-protocol.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef __has_attribute
 # define __has_attribute(x) 0  /* Compatibility with non-clang compilers. */
@@ -179,3 +184,6 @@ WL_PRIVATE const struct wl_interface xdg_popup_interface = {
 	3, xdg_popup_events,
 };
 
+#ifdef __cplusplus
+}
+#endif
