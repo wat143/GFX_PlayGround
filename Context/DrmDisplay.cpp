@@ -16,6 +16,7 @@ DrmDisplay::DrmDisplay(int type):NativeDisplay(type){
     if (initGbm(DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR))
         std::cerr << "Failed to init GBM\n";
     firstFlip = true;
+    drm->useAtomic = supportAtomic();
 }
 
 DrmDisplay::~DrmDisplay() {
@@ -104,6 +105,22 @@ struct drmObject* DrmDisplay::findPlane(uint32_t crtcIdx) {
     return plane;
 }
 
+static int setDrmObjectProp(drmModeAtomicReq* req, struct drmObject* obj,
+                                   std::string name, uint64_t val) {
+    uint32_t prop_id = 0;
+    for (int i = 0; i < obj->props->count_props; i++) {
+        if (!strcmp(obj->propsInfo[i]->name, name.c_str())) {
+            prop_id = obj->propsInfo[i]->prop_id;
+            break;
+        }
+    }
+    if (prop_id == 0) {
+        std::cerr << "No object property " << name << std::endl;
+        return -EINVAL;
+    }
+    return drmModeAtomicAddProperty(req, obj->id, prop_id, val);
+}
+
 bool DrmDisplay::getObjectProperties(struct drmObject* obj, uint32_t type) {
     obj->props = drmModeObjectGetProperties(drm->fd, obj->id, type);
     if (!obj->props)
@@ -186,7 +203,7 @@ int DrmDisplay::initDrm(std::string dev_name) {
             if (drm->output) {
                 /* 1 output is enough as of now */
                 break;
-                
+
             }
             else
                 std::cerr << "Failed to create output from connector "
@@ -268,6 +285,25 @@ struct drmFB* DrmDisplay::drmFBGetFromBO(struct gbm_bo* bo) {
     return fb;
 }
 
+bool DrmDisplay::supportAtomic() {
+    int ret = 0;
+    bool support;
+    struct drmOutput* output = drm->output;
+    drmModeAtomicReq* req = drmModeAtomicAlloc();
+    if (setDrmObjectProp(req, output->connector, "CRTC_ID", output->crtc->crtcObj->id) < 0)
+        ret = -1;
+    if (!ret && setDrmObjectProp(req, output->crtc->crtcObj, "MODE_ID", output->blob_id) < 0)
+        ret = -1;
+    if (!ret)
+        ret = drmModeAtomicCommit(drm->fd, req, DRM_MODE_ATOMIC_TEST_ONLY, nullptr);
+    if (ret < 0)
+        support = false;
+    else
+        support = true;
+    drmModeAtomicFree(req);
+    return support;
+}
+
 static void pageFlipHandler(int fd, unsigned int frame, unsigned int sec,
                             unsigned int usec, void* data)
 {
@@ -275,7 +311,7 @@ static void pageFlipHandler(int fd, unsigned int frame, unsigned int sec,
     *pendingFlip = 0;
 }
 
-int DrmDisplay::pageFlip() {
+int DrmDisplay::pageFlipLegacy() {
     fd_set fds;
     struct gbm_bo* bo;
     struct drmOutput* output = drm->output;
@@ -337,6 +373,120 @@ int DrmDisplay::pageFlip() {
         gbm->bo = next_bo;
     }
     return 0;
+}
+
+static void pageFlipHandlerAtomic(int fd, unsigned int frame, unsigned int sec,
+                                  unsigned int usec, unsigned int crtc_id, void* data)
+{
+    int* pendingFlip = static_cast<int*>(data);
+    *pendingFlip = 0;
+}
+
+static int atomicCommit(struct drm* drm, int width, int height, int flags) {
+    int ret;
+    drmModeAtomicReq* req;
+    struct drmObject* connector = drm->output->connector;
+    struct drmObject* crtc = drm->output->crtc->crtcObj;
+    struct drmObject* plane = drm->output->plane;
+    struct drmFB* fb = drm->output->fb;
+
+    req = drmModeAtomicAlloc();
+    if (flags & DRM_MODE_ATOMIC_ALLOW_MODESET) {
+        /* set CRTC ID to use */
+        if (setDrmObjectProp(req, connector, "CRTC_ID", crtc->id) < 0)
+            return -1;
+        /* set mode id for CRTC */
+        if (setDrmObjectProp(req, crtc, "MODE_ID", drm->output->blob_id) < 0)
+            return -1;
+        /* set CRTC active */
+        if (setDrmObjectProp(req, crtc, "ACTIVE", 1) < 0)
+            return -1;
+    }
+
+    /* set plane properties */
+    if (setDrmObjectProp(req, plane, "FB_ID", fb->id) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "CRTC_ID", crtc->id) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "SRC_X", 0) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "SRC_Y", 0) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "SRC_W", width << 16) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "SRC_H", height << 16) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "CRTC_X", 0) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "CRTC_Y", 0) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "CRTC_W", width) < 0)
+        return -1;
+    if (setDrmObjectProp(req, plane, "CRTC_H", height) < 0)
+        return -1;
+
+	flags |= DRM_MODE_PAGE_FLIP_EVENT;
+    ret = drmModeAtomicCommit(drm->fd, req, flags, nullptr);
+    if (ret < 0)
+        std::cerr << "atomic commit failed\n";
+
+    drmModeAtomicFree(req);
+
+    return ret;
+}
+
+int DrmDisplay::pageFlipAtomic() {
+    int flags = 0;
+    fd_set fds;
+    struct gbm_bo* next_bo;
+    struct drmOutput* output = drm->output;
+    uint32_t crtcId, connId;
+    int ret, pendingFlip = 1;
+    drmEventContext eventCtx = {
+        .version = 3,
+        .page_flip_handler2 = pageFlipHandlerAtomic,
+    };
+    crtcId = output->crtc->crtcObj->id;
+    connId = output->connector->id;
+
+    next_bo = gbm_surface_lock_front_buffer(gbm->surface);
+    output->fb = drmFBGetFromBO(next_bo);
+    if (!output->fb) {
+        std::cerr << "failed to get FB " << strerror(errno) << std::endl;
+        return ret;
+    }
+    pendingFlip = 1;
+    if (firstFlip) {
+        flags = DRM_MODE_ATOMIC_ALLOW_MODESET;
+        firstFlip = false;
+    }
+    atomicCommit(drm, window_w, window_h, flags);
+    while (pendingFlip) {
+        FD_ZERO(&fds);
+        FD_SET(0, &fds);
+        FD_SET(drm->fd, &fds);
+        ret = select(drm->fd + 1, &fds, nullptr, nullptr, nullptr);
+        if (ret < 0) {
+            std::cerr << "select err: " << strerror(errno) << std::endl;
+            return ret;
+        } else if (ret == 0) {
+            std::cerr << "select timeout\n";
+            return -1;
+        } else if (FD_ISSET(drm->fd, &fds)) {
+            drmHandleEvent(drm->fd, &eventCtx);
+        }
+    }
+    gbm_surface_release_buffer(gbm->surface, gbm->bo);
+    gbm->bo = next_bo;
+
+    return 0;
+}
+
+int DrmDisplay::pageFlip() {
+    if (drm->useAtomic)
+        return pageFlipAtomic();
+    else
+        return pageFlipLegacy();
 }
 
 int DrmDisplay::initGbmSurface(uint64_t modifier) {
