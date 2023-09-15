@@ -54,6 +54,7 @@ struct drmOutput {
 
 struct drm {
   int fd;
+  bool useAtomic;
   struct drmOutput *output;
 };
 
@@ -70,9 +71,12 @@ class DrmDisplay : public NativeDisplay {
   struct drmObject* findPlane(uint32_t crtcId);
   bool getObjectProperties(struct drmObject* obj, uint32_t type);
   struct drmFB* drmFBGetFromBO(struct gbm_bo* bo);
+  bool supportAtomic();
   /* GBM related functions */
   int initGbm(uint32_t format, uint64_t modifier);
   int initGbmSurface(uint64_t modifier);
+  int pageFlipLegacy();
+  int pageFlipAtomic();
  public:
   DrmDisplay(int type);
   ~DrmDisplay();
