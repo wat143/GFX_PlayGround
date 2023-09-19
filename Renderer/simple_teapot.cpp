@@ -28,9 +28,9 @@
 #include "PiGLObject.h"
 #include "Utils.h"
 
-#define TEAPOT_OBJ_PATH "/home/pi/work/OpenGL/Binaries/teapot.obj"
-#define MONKEY_OBJ_PATH "/home/pi/work/OpenGL/Binaries/monkey.obj"
-#define TEX_FILE_PATH "/home/pi/work/GFX_PlayGround/Renderer/Gaudi_128_128.raw"
+#define TEAPOT_OBJ_PATH "../Resources/teapot.obj"
+#define MONKEY_OBJ_PATH "../Resources/monkey.obj"
+#define TEX_FILE_PATH "../Resources/Gaudi_128_128.raw"
 #define check() assert(glGetError() == 0)
 
 glm::vec3 lightDir = {3.0, 2.0, 3.0};
