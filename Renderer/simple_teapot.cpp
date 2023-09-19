@@ -11,14 +11,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include <bcm_host.h>
-
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
 #ifdef DISPMANX
 #include <revision.h>
+#include <bcm_host.h>
 #endif
 
 #include "AssimpMesh.h"
