@@ -77,3 +77,37 @@ else()
     GLESv2
 )
 endif()
+
+add_executable(videoStream
+  videoStream.c
+  ${CMAKE_SOURCE_DIR}/Context/xdg-shell.c
+)
+
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0>=1.0.0)
+pkg_check_modules(GSTBASE REQUIRED gstreamer-base-1.0>=1.0.0)
+pkg_check_modules(GSTAPP REQUIRED gstreamer-app-1.0>=1.0.0)
+pkg_check_modules(GOBJECT REQUIRED gobject-2.0>=1.0.0)
+pkg_check_modules(GLIB REQUIRED glib-2.0>=1.0.0)
+pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client>=1.18.0)
+pkg_check_modules(WAYLAND_EGL REQUIRED wayland-egl>=18.1.0)
+pkg_check_modules(LIBEGL REQUIRED egl>=1.0.0)
+pkg_check_modules(LIBGLESV2 REQUIRED glesv2>=2.0.0)
+
+target_include_directories(videoStream
+  PRIVATE
+  ${CMAKE_SOURCE_DIR}/Context
+  ${CMAKE_SOURCE_DIR}/include
+  ${GSTREAMER_INCLUDE_DIRS}
+)
+
+target_link_libraries(videoStream
+  ${GSTREAMER_LINK_LIBRARIES}
+  ${GSTBASE_LINK_LIBRARIES}
+  ${GSTAPP_LINK_LIBRARIES}
+  ${GOBJECT_LINK_LIBRARIES}
+  ${GLIB_LINK_LIBRARIES}
+  ${LIBEGL_LINK_LIBRARIES}
+  ${LIBGLESV2_LINK_LIBRARIES}
+  ${WAYLAND_CLIENT_LINK_LIBRARIES}
+  ${WAYLAND_EGL_LINK_LIBRARIES}
+)
