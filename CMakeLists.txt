@@ -10,6 +10,11 @@ elseif(BUILD_FW MATCHES DRM)
   set(GFX_PATH "/usr/include/libdrm")
 endif()
 
+set(VULKAN_APP CACHE STRING "Enable vulkan sample app build")
+if(VULKAN_APP MATCHES ON)
+    set(VULKAN_BUILD 1)
+endif()
+
 find_package(PkgConfig REQUIRED)
 
 set(CMAKE_SYSROOT $ENV{SYSROOT})
