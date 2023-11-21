@@ -111,3 +111,36 @@ target_link_libraries(videoStream
   ${WAYLAND_CLIENT_LINK_LIBRARIES}
   ${WAYLAND_EGL_LINK_LIBRARIES}
 )
+
+
+if(VULKAN_BUILD MATCHES 1)
+# Build shader files
+set(SHADER_SRC ${CMAKE_SOURCE_DIR}/Renderer/shaders)
+set(SHADER_DST ${CMAKE_BINARY_DIR}/Renderer/shaders)
+file(MAKE_DIRECTORY ${SHADER_DST})
+add_custom_command(
+    OUTPUT ${SHADER_DST}/vert.spv
+    COMMAND glslc ${SHADER_SRC}/shader.vert -o ${SHADER_DST}/vert.spv
+    DEPENDS ${SHADER_SRC}/shader.vert
+)
+add_custom_target(VertShader DEPENDS ${SHADER_DST}/vert.spv)
+
+add_custom_command(
+    OUTPUT ${SHADER_DST}/frag.spv
+    COMMAND glslc ${SHADER_SRC}/shader.frag -o ${SHADER_DST}/frag.spv
+    DEPENDS ${SHADER_SRC}/shader.frag
+)
+add_custom_target(FragShader DEPENDS ${SHADER_DST}/frag.spv)
+
+pkg_check_modules(LIBVULKAN REQUIRED vulkan>=1.3.0)
+pkg_check_modules(LIBGLFW3 REQUIRED glfw3>=3.3.0)
+
+add_executable(vulkanHelloTriangle vulkanHelloTriangle.cpp)
+add_dependencies(vulkanHelloTriangle VertShader FragShader)
+
+target_link_libraries(vulkanHelloTriangle
+    vulkan
+    glfw
+)
+
+endif()
