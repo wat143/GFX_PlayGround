@@ -136,6 +136,7 @@ pkg_check_modules(LIBVULKAN REQUIRED vulkan>=1.3.0)
 pkg_check_modules(LIBGLFW3 REQUIRED glfw3>=3.3.0)
 
 add_executable(vulkanHelloTriangle vulkanHelloTriangle.cpp)
+add_compile_definitions(NDEBUG)
 add_dependencies(vulkanHelloTriangle VertShader FragShader)
 
 target_link_libraries(vulkanHelloTriangle
