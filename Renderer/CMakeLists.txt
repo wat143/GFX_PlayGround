@@ -126,6 +126,13 @@ add_custom_command(
 add_custom_target(VertShader DEPENDS ${SHADER_DST}/vert.spv)
 
 add_custom_command(
+    OUTPUT ${SHADER_DST}/vert3d.spv
+    COMMAND glslc ${SHADER_SRC}/shader3d.vert -o ${SHADER_DST}/vert3d.spv
+    DEPENDS ${SHADER_SRC}/shader3d.vert
+)
+add_custom_target(VertShader3D DEPENDS ${SHADER_DST}/vert3d.spv)
+
+add_custom_command(
     OUTPUT ${SHADER_DST}/frag.spv
     COMMAND glslc ${SHADER_SRC}/shader.frag -o ${SHADER_DST}/frag.spv
     DEPENDS ${SHADER_SRC}/shader.frag
@@ -142,6 +149,22 @@ add_dependencies(vulkanHelloTriangle VertShader FragShader)
 target_link_libraries(vulkanHelloTriangle
     vulkan
     glfw
+)
+
+add_executable(simple_teapot_vk simple_teapot_vk.cpp)
+add_compile_definitions(NDEBUG)
+add_dependencies(simple_teapot_vk VertShader3D FragShader)
+
+target_include_directories(simple_teapot_vk
+  PRIVATE
+  ${CMAKE_SOURCE_DIR}/Mesh
+)
+
+target_link_libraries(simple_teapot_vk
+    vulkan
+    glfw
+    assimp
+    Mesh
 )
 
 endif()
