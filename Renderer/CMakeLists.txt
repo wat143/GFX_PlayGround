@@ -151,6 +151,12 @@ target_link_libraries(vulkanHelloTriangle
     glfw
 )
 
+target_include_directories(vulkanHelloTriangle
+  PRIVATE
+  ${CMAKE_SOURCE_DIR}/include
+)
+
+
 add_executable(simple_teapot_vk simple_teapot_vk.cpp)
 add_compile_definitions(NDEBUG)
 add_dependencies(simple_teapot_vk VertShader3D FragShader)
