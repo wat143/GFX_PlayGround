@@ -13,6 +13,8 @@ enum SHADER_TYPE {
 struct Model {
     std::vector<const char*> shader_codes;
     std::map<std::string, GLuint> attr, uni;
+    std::vector<const GLfloat*> attr_data;
+    std::vector<GLuint> attr_size;
     GLuint program;
     GLuint *bufs = nullptr;
 };

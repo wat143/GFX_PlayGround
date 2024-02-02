@@ -65,6 +65,30 @@ else()
 )
 endif()
 
+add_executable(simple_alpha alphaBlend.cpp)
+target_include_directories(simple_alpha
+  PRIVATE
+  ${CMAKE_SOURCE_DIR}/Context
+  ${CMAKE_SOURCE_DIR}/include
+  ${GFX_INCLUDE_PATH}
+  ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
+)
+
+target_link_libraries(simple_alpha
+  Context
+)
+
+if(BUILD_FW MATCHES DISPMANX)
+  target_link_libraries(simple_alpha
+        DISPMANX_LIBS
+)
+else()
+  target_link_libraries(simple_alpha
+    EGL
+    GLESv2
+)
+endif()
+
 add_executable(videoStream
   videoStream.c
   ${CMAKE_SOURCE_DIR}/Context/xdg-shell.c
