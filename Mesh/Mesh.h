@@ -10,7 +10,7 @@ protected:
     std::vector<float> vertex_color;
     std::vector<float> vertex_normal;
     std::vector<float> uv_data;
-    std::vector<unsigned short> index_data;
+    std::vector<int> index_data;
     const std::string file_path;
     int index_num;
 public:
@@ -27,7 +27,7 @@ public:
     float* getVertexColor() { return vertex_color.data(); }
     float* getVertexNormal() { return vertex_normal.data(); }
     float* getUV() { return uv_data.data(); }
-    unsigned short* getIndex() { return index_data.data(); }
+    int* getIndex() { return index_data.data(); }
     void updateVertexPos(float* data, int size) {
         vertex_data.clear();
         vertex_data.resize(size);

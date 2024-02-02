@@ -22,271 +22,400 @@
 
 #include "AssimpMesh.h"
 #include "Context.h"
-#include "GLShader.h"
-#include "Object.h"
-#include "PiGLObject.h"
+#include "ContextFactory.h"
 #include "Utils.h"
+#include "glUtils.h"
 
 #define TEAPOT_OBJ_PATH "../Resources/teapot.obj"
 #define MONKEY_OBJ_PATH "../Resources/monkey.obj"
 #define TEX_FILE_PATH "../Resources/Gaudi_128_128.raw"
 #define check() assert(glGetError() == 0)
 
+/* Vertex Shader */
+const GLchar *vshader_source =
+    "attribute vec3 vertexModelSpace;\n"
+    "attribute vec3 normalModelSpace;\n"
+    "uniform mat4 model;\n"
+    "uniform mat4 mvp;\n"
+    "varying vec2 tcoord;\n"
+    "varying vec3 normal;\n"
+    "varying vec3 vertexWorldSpace;\n"
+    "void main(void) {\n"
+    "  tcoord = vertexModelSpace.xy;\n"
+    "  normal = normalModelSpace;\n"
+    "  vertexWorldSpace = (model * vec4(vertexModelSpace, 1.0)).xyz;\n"
+    "  gl_Position = mvp * vec4(vertexModelSpace, 1.0);\n"
+    "}\n";
+
+/* Fragment Shader */
+const GLchar *fshader_source =
+    "precision mediump float;\n"
+    "uniform sampler2D tex;\n"
+    "uniform mat4 invMatrix;\n"
+    "uniform vec3 eyeDir;\n"
+    "uniform vec3 lightDir;\n"
+    "varying vec2 tcoord;\n"
+    "varying vec3 normal;\n"
+    "varying vec3 vertexWorldSpace;\n"
+    "void main(void) {\n"
+    "   vec4 ambient = vec4(vec3(0.03), 1.0);\n"
+    //    "   vec3 invLight = normalize(invMatrix * vec4(lightDir, 0.0)).xyz;\n"
+    "   vec3 invEye = normalize(invMatrix * vec4(eyeDir, 0.0)).xyz;\n"
+    "   vec3 lightVec = normalize(lightDir - vertexWorldSpace);\n"
+    "   vec3 invLight = normalize(invMatrix * vec4(lightVec, 0.0)).xyz;\n"
+    "   float diffuse = clamp(dot(invLight, normal), 0.1, 1.0);\n"
+    "   vec3 halfVector = normalize(invLight + invEye);\n"
+    //"   vec3 halfVector = normalize(lightVec + invEye);\n"
+    "   float cos = clamp(dot(normal, halfVector), 0.0, 1.0);\n"
+    "   float specular = pow(cos, 25.0);\n"
+    "   vec4 color = texture2D(tex, tcoord);\n"
+    "   color = vec4(1.0, 0.5, 0.5, 1.0);\n"
+    "   vec4 light = color * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);\n"
+    "   gl_FragColor = light + ambient;\n"
+    "}\n";
+
+/* Fragment Shader */
+const GLchar *fshader_source_tex =
+    "precision mediump float;\n"
+    "uniform sampler2D tex;\n"
+    "uniform mat4 invMatrix;\n"
+    "uniform vec3 eyeDir;\n"
+    "uniform vec3 lightDir;\n"
+    "varying vec2 tcoord;\n"
+    "varying vec3 normal;\n"
+    "varying vec3 vertexWorldSpace;\n"
+    "void main(void) {\n"
+    "   vec4 ambient = vec4(vec3(0.03), 1.0);\n"
+    //    "   vec3 invLight = normalize(invMatrix * vec4(lightDir, 0.0)).xyz;\n"
+    "   vec3 invEye = normalize(invMatrix * vec4(eyeDir, 0.0)).xyz;\n"
+    "   vec3 lightVec = normalize(lightDir - vertexWorldSpace);\n"
+    "   vec3 invLight = normalize(invMatrix * vec4(lightVec, 0.0)).xyz;\n"
+    "   float diffuse = clamp(dot(invLight, normal), 0.1, 1.0);\n"
+    "   vec3 halfVector = normalize(invLight + invEye);\n"
+    //"   vec3 halfVector = normalize(lightVec + invEye);\n"
+    "   float cos = clamp(dot(normal, halfVector), 0.0, 1.0);\n"
+    "   float specular = pow(cos, 25.0);\n"
+    "   vec4 color = texture2D(tex, tcoord);\n"
+    "   vec4 light = color * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);\n"
+    "   gl_FragColor = light + ambient;\n"
+    "}\n";
+
 glm::vec3 lightDir = {3.0, 2.0, 3.0};
 glm::vec3 eyePos = {0.0, 2.0, 5.0};
 
-void initGL_Offscreen(Object* object) {
-    if (!object->addAttributeByType("vertexModelSpace", VERTEX_DATA)) {
-        fprintf(stderr, "Failed to add attibute vertex\n");
-        return;
-    }
-    check();
-    if (!object->addAttributeByType("normalModelSpace", VERTEX_NORMAL)) {
-        fprintf(stderr, "Failed to add attibute vertex normal\n");
-        return;
-    }
-    check();
-    if (!object->addUniform("model")) {
-        fprintf(stderr, "Failed to add uniform mvp\n");
-        return;
-    }
-    check();
-    if (!object->addUniform("mvp")) {
-        fprintf(stderr, "Failed to add uniform mvp\n");
-        return;
-    }
-    check();
-    if (!object->addUniform("tex")) {
-        fprintf(stderr, "Failed to add uniform tex\n");
-        return;
-    }
-    if (!object->addUniform("invMatrix")) {
-        fprintf(stderr, "Failed to add uniform invMatrix\n");
-        return;
-    }
-    if (!object->addUniform("eyeDir")) {
-        fprintf(stderr, "Failed to add uniform eyePos\n");
-        return;
-    }
-    if (!object->addUniform("lightDir")) {
-        fprintf(stderr, "Failed to add uniform lightDir\n");
-        return;
-    }
-    check();
-    if (!object->addTexture(TEX_FILE_PATH, 128, 128, "tex")) {
-        fprintf(stderr, "Failed to add texture\n");
-        return;
-    }
-    object->addFB("tex_fb");
-    check();
-    object->addIndexBuffer();
-}
-
-void initGL(Object* object, GLuint tex) {
-    check();
-    if (!object->addAttributeByType("vertexModelSpace", VERTEX_DATA)) {
-        fprintf(stderr, "Failed to add attibute vertex\n");
-        return;
-    }
-    check();
-    if (!object->addAttributeByType("normalModelSpace", VERTEX_NORMAL)) {
-        fprintf(stderr, "Failed to add attibute vertex normal\n");
-        return;
-    }
-    check();
-    //  if (!object->addAttributeByType("uv", UV_DATA)) {
-    //    fprintf(stderr, "Failed to uniform UV\n");
-    //    return;
-    //  }
-    check();
-    if (!object->addUniform("model")) {
-        fprintf(stderr, "Failed to add uniform mvp\n");
-        return;
-    }
-    check();
-    if (!object->addUniform("mvp")) {
-        fprintf(stderr, "Failed to add uniform mvp\n");
-        return;
-    }
-    check();
-    if (!object->addUniform("tex")) {
-        fprintf(stderr, "Failed to add uniform tex\n");
-        return;
-    }
-    if (!object->addUniform("invMatrix")) {
-        fprintf(stderr, "Failed to add uniform invMatrix\n");
-        return;
-    }
-    if (!object->addUniform("eyeDir")) {
-        fprintf(stderr, "Failed to add uniform eyePos\n");
-        return;
-    }
-    if (!object->addUniform("lightDir")) {
-        fprintf(stderr, "Failed to add uniform lightDir\n");
-        return;
-    }
-    check();
-    if (!object->addTexture("tex_fb", tex)) {
-        fprintf(stderr, "Failed to add texture\n");
-        return;
-    }
-    check();
-    object->addIndexBuffer();
-}
-
-static void draw_offscreen(unsigned int counter,
-                           Object *object)
+void compile_shader(GLuint &shader, const char* shader_code,
+                   GLuint shaderType)
 {
+    GLint status;
+    shader = glCreateShader(shaderType);
+    glShaderSource(shader, 1, (const char**)&shader_code, nullptr);
+    glCompileShader(shader);
+    /* check compile result */
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    if (!status) {
+        printShaderLog(shader, shaderType);
+        assert(status);
+    }
+}
+
+void build_program(std::vector<const char*> shader_codes,
+                    GLuint &program)
+{
+    GLuint vert_shader, frag_shader;
+    program = glCreateProgram();
+    compile_shader(vert_shader, shader_codes[0], GL_VERTEX_SHADER);
+    compile_shader(frag_shader, shader_codes[1], GL_FRAGMENT_SHADER);
+    glAttachShader(program, vert_shader);
+    glAttachShader(program, frag_shader);
+    glLinkProgram(program);
+}
+
+void init_gl(Context *context) {
+    unsigned int w, h;
+    context->getMode(w, h);
+
+    /* Enable depth test */
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glViewport(0, 0, w, h);
+    glClearColor(0.3, 0.3, 0.3, 1.0);
+}
+
+void init_model_tex(Model *model, Mesh *mesh) {
+    /* compile shader and link program */
+    build_program(model->shader_codes, model->program);
+    glUseProgram(model->program);
+    /* generate buffers */
+    glGenBuffers(3, model->bufs);
+    /* get attributes */
+    model->attr["vertexModelSpace"] =
+        glGetAttribLocation(model->program, "vertexModelSpace");
+    model->attr["normalModelSpace"] =
+        glGetAttribLocation(model->program, "normalModelSpace");
+    /* bind data to VBO */
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 mesh->getVertexDataSize() * sizeof(float),
+                 mesh->getVertexPos(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 mesh->getVertexNormalSize() * sizeof(float),
+                 mesh->getVertexNormal(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    /* bind index data */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 mesh->getIndexSize() * sizeof(int),
+                 mesh->getIndex(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    /* get uniforms */
+    model->uni["model"] = glGetUniformLocation(model->program, "model");
+    model->uni["mvp"] = glGetUniformLocation(model->program, "mvp");
+    model->uni["tex"] = glGetUniformLocation(model->program, "tex");
+    model->uni["invMatrix"] = glGetUniformLocation(model->program, "invMatrix");
+    model->uni["eyeDir"] = glGetUniformLocation(model->program, "eyeDir");
+    model->uni["lightDir"] = glGetUniformLocation(model->program, "lightDir");
+}
+
+void init_model_off(Model *model, Mesh *mesh) {
+    /* compile shader and link program */
+    build_program(model->shader_codes, model->program);
+    glUseProgram(model->program);
+    /* generate buffers */
+    glGenBuffers(3, model->bufs);
+    /* get attributes */
+    model->attr["vertexModelSpace"] =
+        glGetAttribLocation(model->program, "vertexModelSpace");
+    model->attr["normalModelSpace"] =
+        glGetAttribLocation(model->program, "normalModelSpace");
+    /* bind data to VBO */
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 mesh->getVertexDataSize() * sizeof(float),
+                 mesh->getVertexPos(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 mesh->getVertexNormalSize() * sizeof(float),
+                 mesh->getVertexNormal(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    /* bind index data */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 mesh->getIndexSize() * sizeof(int),
+                 mesh->getIndex(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    /* get uniforms */
+    model->uni["model"] = glGetUniformLocation(model->program, "model");
+    model->uni["mvp"] = glGetUniformLocation(model->program, "mvp");
+    model->uni["invMatrix"] = glGetUniformLocation(model->program, "invMatrix");
+    model->uni["eyeDir"] = glGetUniformLocation(model->program, "eyeDir");
+    model->uni["lightDir"] = glGetUniformLocation(model->program, "lightDir");
+}
+
+void init_fb(Context *context, GLuint &texture, GLuint &fb) {
+    unsigned int width, height;
+    /* get width and height */
+    context->getMode(width, height);
+    /* generate texture and configure parameters */
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    /* allocate storage for texture data */
+    /* this is used for framebuffer storage, do not set data ptr */
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    /* generate framebuffer */
+    glGenFramebuffers(1, &fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+    /* attach texture to framebuffer */
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_2D, texture, 0);
+
+    /* unbind framebuffer and texture */
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+static void redraw_off(Context *context, Model *model, Mesh* mesh,
+                       GLuint fb, unsigned int counter)
+
+{
+    /* Bind default framebuffer */
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+    /* clar previous rendering */
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* calculate MVP matrix*/
     float rad = (counter % 360) * (M_PI / 180);
-    float h = static_cast<float>(object->getHeight());
-    float w = static_cast<float>(object->getWidth());
+    unsigned int h, w;
+    context->getMode(w, h);
     float aspect = w / h;
-    glm::mat4 Model, MVP, invModel;
-    Model = glm::identity<glm::mat4>();
+    glm::mat4 M, MVP, invM;
+    M = glm::identity<glm::mat4>();
     MVP = glm::identity<glm::mat4>();
-    invModel = glm::identity<glm::mat4>();
-    glm::mat4 View = glm::lookAt(glm::vec3(0.0, 1.0, 3.0),
+    invM = glm::identity<glm::mat4>();
+    glm::mat4 V = glm::lookAt(glm::vec3(0.0, 2.0, 5.0),
                                  glm::vec3(0.0, 0.0, 0.0),
                                  glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4 Proj = glm::perspective(glm::radians(45.0f),
+    glm::mat4 P = glm::perspective(glm::radians(45.0f),
                                       aspect, 0.1f, 100.0f);
-    Model = glm::scale(Model, glm::vec3(0.5, 0.5, 0.5));
-    Model = glm::rotate(Model, rad, glm::vec3(0, 1, 0));
-    invModel = glm::inverse(Model);
-    MVP = Proj * View * Model;
-    // Configure uniforms
-    object->updateUniformMat4("model", Model);
-    object->updateUniformMat4("mvp", MVP);
-    object->updateUniformMat4("invMatrix", invModel);
+    M = glm::scale(M, glm::vec3(0.7, 0.7, 0.7));
+    invM = glm::inverse(M);
+    MVP = P * V * M;
+
+    /* Enable program and attributes */
+    glUseProgram(model->program);
+    glEnableVertexAttribArray(model->attr["vertexModelSpace"]);
+    glEnableVertexAttribArray(model->attr["normalModelSpace"]);
+    /* bind attributes */
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
+    glVertexAttribPointer(model->attr["vertexModelSpace"], 3,
+                          GL_FLOAT, GL_TRUE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
+    glVertexAttribPointer(model->attr["normalModelSpace"], 3,
+                          GL_FLOAT, GL_TRUE, 0, 0);
+
+    /* Update uniforms */
+    glUniformMatrix4fv(model->uni["model"], 1, GL_FALSE, &M[0][0]);
+    glUniformMatrix4fv(model->uni["mvp"], 1, GL_FALSE, &MVP[0][0]);
+    glUniformMatrix4fv(model->uni["invMatrix"], 1, GL_FALSE, &invM[0][0]);    
     check();
-    object->updateUniformVec3("eyeDir", eyePos);
+    glUniform3fv(model->uni["eyeDir"], 1, &eyePos[0]);
     lightDir[0] = sin(rad) * 3;
     lightDir[1] = cos(rad) * 3;
     lightDir[2] = 3;
-    object->updateUniformVec3("lightDir", lightDir);
+    glUniform3fv(model->uni["lightDir"], 1, &lightDir[0]);
     check();
-    // Draw
-    object->draw();
+    /* Bind index buffer */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
+    
+    glDrawElements(GL_TRIANGLES, mesh->getIndexSize(),
+                   GL_UNSIGNED_INT, 0);
     check();
+
+    /* unbind VIO and texture */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    glFlush();
+    glFinish();
 }
-static void draw_triangles(unsigned int counter,
-                           Object *object)
+
+static void redraw_tex(Context *context, Model *model, Mesh* mesh,
+                 GLuint texture, unsigned int counter)
+
 {
+    /* Bind default framebuffer */
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    /* clar previous rendering */
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* calculate MVP matrix*/
     float rad = (counter % 360) * (M_PI / 180);
-    float h = static_cast<float>(object->getHeight());
-    float w = static_cast<float>(object->getWidth());
+    unsigned int h, w;
+    context->getMode(w, h);
     float aspect = w / h;
-    glm::mat4 Model, MVP, invModel;
-    Model = glm::identity<glm::mat4>();
+    glm::mat4 M, MVP, invM;
+    M = glm::identity<glm::mat4>();
+    invM = glm::identity<glm::mat4>();
     MVP = glm::identity<glm::mat4>();
-    invModel = glm::identity<glm::mat4>();
-    glm::mat4 View = glm::lookAt(glm::vec3(0.0, 2.0, 5.0),
+    glm::mat4 V = glm::lookAt(glm::vec3(0.0, 2.0, 8.0),
                                  glm::vec3(0.0, 0.0, 0.0),
                                  glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4 Proj = glm::perspective(glm::radians(45.0f),
+    glm::mat4 P = glm::perspective(glm::radians(45.0f),
                                       aspect, 0.1f, 100.0f);
-    Model = glm::scale(Model, glm::vec3(0.7, 0.7, 0.7));
-    invModel = glm::inverse(Model);
-    MVP = Proj * View * Model;
-    // Configure uniforms
-    object->updateUniformMat4("model", Model);
-    object->updateUniformMat4("mvp", MVP);
-    object->updateUniformMat4("invMatrix", invModel);
+    invM = glm::inverse(M);
+    MVP = P * V * M;
+
+    /* Enable program and attributes */
+    glUseProgram(model->program);
+    glEnableVertexAttribArray(model->attr["vertexModelSpace"]);
+    glEnableVertexAttribArray(model->attr["normalModelSpace"]);
+    /* bind attributes */
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
+    glVertexAttribPointer(model->attr["vertexModelSpace"], 3,
+                          GL_FLOAT, GL_TRUE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
+    glVertexAttribPointer(model->attr["normalModelSpace"], 3,
+                          GL_FLOAT, GL_TRUE, 0, 0);
+
+    /* Bind texture */
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    /* Update uniforms */
+    glUniformMatrix4fv(model->uni["model"], 1, GL_FALSE, &M[0][0]);
+    glUniformMatrix4fv(model->uni["mvp"], 1, GL_FALSE, &MVP[0][0]);
+    glUniform1i(model->uni["tex"], 0);
+    glUniformMatrix4fv(model->uni["invMatrix"], 1, GL_FALSE, &invM[0][0]);    
     check();
-    object->updateUniformVec3("eyeDir", eyePos);
+    glUniform3fv(model->uni["eyeDir"], 1, &eyePos[0]);
     lightDir[0] = sin(rad) * 3;
     lightDir[1] = cos(rad) * 3;
     lightDir[2] = 3;
-    object->updateUniformVec3("lightDir", lightDir);
+    glUniform3fv(model->uni["lightDir"], 1, &lightDir[0]);
     check();
-    // Draw
-    object->draw();
+    /* Bind index buffer */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
+    
+    glDrawElements(GL_TRIANGLES, mesh->getIndexSize(),
+                   GL_UNSIGNED_INT, 0);
     check();
+
+    /* unbind VIO and texture */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glFlush();
 }
 
 int main() {
-    // Vertex Shader
-    const GLchar *vshader_source =
-        "attribute vec3 vertexModelSpace;"
-        "attribute vec3 normalModelSpace;"
-        "uniform mat4 model;"
-        "uniform mat4 mvp;"
-        "varying vec2 tcoord;"
-        "varying vec3 normal;"
-        "varying vec3 vertexWorldSpace;"
-        "void main(void) {"
-        "  tcoord = vertexModelSpace.xy;"
-        "  normal = normalModelSpace;"
-        "  vertexWorldSpace = (model * vec4(vertexModelSpace, 1.0)).xyz;"
-        "  gl_Position = mvp * vec4(vertexModelSpace, 1.0);"
-        "}";
-
-    //Fragment Shader
-    const GLchar *fshader_source =
-        "precision mediump float;"
-        "uniform sampler2D tex;"
-        "uniform mat4 invMatrix;"
-        "uniform vec3 eyeDir;"
-        "uniform vec3 lightDir;"
-        "varying vec2 tcoord;"
-        "varying vec3 normal;"
-        "varying vec3 vertexWorldSpace;"
-        "void main(void) {"
-        "   vec4 ambient = vec4(vec3(0.03), 1.0);"
-        //    "   vec3 invLight = normalize(invMatrix * vec4(lightDir, 0.0)).xyz;"
-        "   vec3 invEye = normalize(invMatrix * vec4(eyeDir, 0.0)).xyz;"
-        "   vec3 lightVec = normalize(lightDir - vertexWorldSpace);"
-        "   vec3 invLight = normalize(invMatrix * vec4(lightVec, 0.0)).xyz;"
-        "   float diffuse = clamp(dot(invLight, normal), 0.1, 1.0);"
-        "   vec3 halfVector = normalize(invLight + invEye);"
-        //"   vec3 halfVector = normalize(lightVec + invEye);"
-        "   float cos = clamp(dot(normal, halfVector), 0.0, 1.0);"
-        "   float specular = pow(cos, 25.0);"
-        "   vec4 color = texture2D(tex, tcoord);"
-        "   vec4 light = color * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0);"
-        "   gl_FragColor = light + ambient;"
-        "}";
+    ContextFactory factory;
+    Context *context = nullptr;
+    Model model_teapot, model_monkey;
+    Mesh* mesh_teapot = new AssimpMesh(TEAPOT_OBJ_PATH);
+    Mesh* mesh_monkey = new AssimpMesh(MONKEY_OBJ_PATH);
+    GLuint texture, fb;
     int terminate = 0;
     unsigned int counter = 0;
-#ifdef DRM
-    Object* object = new PiGLObject(vshader_source, fshader_source, Drm);
-    Object* objectOffscreen = new PiGLObject(vshader_source, fshader_source, Drm);
-#endif
-#ifdef WAYLAND
-    Object* object = new PiGLObject(vshader_source, fshader_source, Wayland);
-    Object* objectOffscreen =
-        new PiGLObject(vshader_source, fshader_source, Wayland);
-#endif
-    Mesh* meshTeapot = new AssimpMesh(TEAPOT_OBJ_PATH);
-    Mesh* meshMonkey = new AssimpMesh(MONKEY_OBJ_PATH);
 
-    meshTeapot->import();
-    object->addMesh(meshTeapot);
-    object->prepare();
-    meshMonkey->import();
-    objectOffscreen->addMesh(meshMonkey);
-    objectOffscreen->prepare();
-    initGL_Offscreen(objectOffscreen);
-    initGL(object, objectOffscreen->getTexture("tex_fb"));
+#ifdef NATIVE_DISP_WAYLAND
+    std::cout << "NativeDisp = Wayland\n";    
+    context = factory.create(Wayland);
+#elif NATIVE_DISP_DRM
+    std::cout << "NativeDisp = Drm\n";    
+    context = factory.create(Drm);
+#endif
+    init_gl(context);
+    /* init teapot model*/
+    model_teapot.shader_codes.push_back(vshader_source);
+    model_teapot.shader_codes.push_back(fshader_source_tex);
+    model_teapot.bufs = new GLuint[3];
+    mesh_teapot->import();
+    init_model_tex(&model_teapot, mesh_teapot);
+
+    /* init monkey model*/
+    model_monkey.shader_codes.push_back(vshader_source);
+    model_monkey.shader_codes.push_back(fshader_source);
+    model_monkey.bufs = new GLuint[3];
+    mesh_monkey->import();
+    init_model_off(&model_monkey, mesh_monkey);
+
+    /* init fb */
+    init_fb(context, texture, fb);
+
+    /* drawing */
     check();
     fprintf(stderr, "Start drawing\n");
     while (!terminate) {
-        // Offscreen rendering
-        objectOffscreen->activate();
-        objectOffscreen->activateTexture("tex");
-        objectOffscreen->activateFB("tex_fb");
-        draw_offscreen(counter, objectOffscreen);
-        objectOffscreen->deactivate();
-        // Get FB
-        object->activate();
-        object->activateTexture("tex_fb");
-        draw_triangles(counter, object);
-        object->deactivate();
-        //Submit buffer to window system
-        object->swapBuffers();
+        redraw_off(context, &model_monkey, mesh_monkey, texture, counter);
+        redraw_tex(context, &model_teapot, mesh_teapot, fb, counter);
+        /* swap buffers */
+        context->swapBuffers();
         counter++;
     }
-    delete object;
-    delete objectOffscreen;
     return 0;
 }
