@@ -20,7 +20,7 @@ target_include_directories(simple_teapot
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/Mesh
   ${CMAKE_SOURCE_DIR}/include
-  ${GFX_INCLUDE_PATH}
+  ${GFX_INCLUDE_PATH}/glm
   ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
 )
 
@@ -46,7 +46,7 @@ target_include_directories(simple_triangle
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/include
-  ${GFX_INCLUDE_PATH}
+  ${GFX_INCLUDE_PATH}/glm
   ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
 )
 
@@ -70,7 +70,7 @@ target_include_directories(simple_alpha
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/include
-  ${GFX_INCLUDE_PATH}
+  ${GFX_INCLUDE_PATH}/glm
   ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
 )
 
@@ -165,6 +165,7 @@ target_link_libraries(vulkanHelloTriangle
 target_include_directories(vulkanHelloTriangle
   PRIVATE
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/glm
 )
 
 
@@ -175,6 +176,7 @@ add_dependencies(simple_teapot_vk VertShader3D FragShader)
 target_include_directories(simple_teapot_vk
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Mesh
+  ${CMAKE_SOURCE_DIR}/glm
 )
 
 target_link_libraries(simple_teapot_vk
