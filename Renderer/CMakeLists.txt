@@ -20,7 +20,7 @@ target_include_directories(simple_teapot
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/Mesh
   ${CMAKE_SOURCE_DIR}/include
-  ${GFX_INCLUDE_PATH}/glm
+  ${CMAKE_SOURCE_DIR}/glm
   ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
 )
 
@@ -46,7 +46,7 @@ target_include_directories(simple_triangle
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/include
-  ${GFX_INCLUDE_PATH}/glm
+  ${CMAKE_SOURCE_DIR}/glm
   ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
 )
 
@@ -70,7 +70,7 @@ target_include_directories(simple_alpha
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/include
-  ${GFX_INCLUDE_PATH}/glm
+  ${CMAKE_SOURCE_DIR}/glm
   ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
 )
 
