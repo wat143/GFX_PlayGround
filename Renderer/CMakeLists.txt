@@ -99,30 +99,30 @@ pkg_check_modules(GSTBASE REQUIRED gstreamer-base-1.0>=1.0.0)
 pkg_check_modules(GSTAPP REQUIRED gstreamer-app-1.0>=1.0.0)
 pkg_check_modules(GOBJECT REQUIRED gobject-2.0>=1.0.0)
 pkg_check_modules(GLIB REQUIRED glib-2.0>=1.0.0)
-pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client>=1.18.0)
-pkg_check_modules(WAYLAND_EGL REQUIRED wayland-egl>=18.1.0)
-pkg_check_modules(LIBEGL REQUIRED egl>=1.0.0)
-pkg_check_modules(LIBGLESV2 REQUIRED glesv2>=2.0.0)
-
+foreach(DIR ${GSTREAMER_INCLUDE_DIRS})
+    message(${DIR})
+    file(TO_CMAKE_PATH "${CMAKE_SYSROOT}/${DIR}" GST_DIR)
+    list(APPEND GST_INCLUDE_DIRS ${GST_DIR})
+endforeach()
+message(${GST_INCLUDE_DIRS})
 target_include_directories(videoStream
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/include
-  ${GSTREAMER_INCLUDE_DIRS}
+  ${GST_INCLUDE_DIRS}
 )
 
 target_link_libraries(videoStream
-  ${GSTREAMER_LINK_LIBRARIES}
-  ${GSTBASE_LINK_LIBRARIES}
-  ${GSTAPP_LINK_LIBRARIES}
-  ${GOBJECT_LINK_LIBRARIES}
-  ${GLIB_LINK_LIBRARIES}
-  ${LIBEGL_LINK_LIBRARIES}
-  ${LIBGLESV2_LINK_LIBRARIES}
-  ${WAYLAND_CLIENT_LINK_LIBRARIES}
-  ${WAYLAND_EGL_LINK_LIBRARIES}
+  gstreamer-1.0
+  gstbase-1.0
+  gstapp-1.0
+  gobject-2.0
+  glib-2.0
+  EGL
+  GLESv2
+  wayland-client
+  wayland-egl
 )
-
 
 if(VULKAN_BUILD MATCHES 1)
 # Build shader files
@@ -149,9 +149,6 @@ add_custom_command(
     DEPENDS ${SHADER_SRC}/shader.frag
 )
 add_custom_target(FragShader DEPENDS ${SHADER_DST}/frag.spv)
-
-pkg_check_modules(LIBVULKAN REQUIRED vulkan>=1.3.0)
-pkg_check_modules(LIBGLFW3 REQUIRED glfw3>=3.3.0)
 
 add_executable(vulkanHelloTriangle vulkanHelloTriangle.cpp)
 add_compile_definitions(NDEBUG)

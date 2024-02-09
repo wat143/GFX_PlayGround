@@ -16,8 +16,6 @@ if(BUILD_FW MATCHES DISPMANX)
     bcm_host)
   add_compile_options(-DDISPMANX=1)
 elseif(BUILD_FW MATCHES DRM)
-  pkg_check_modules(LIBDRM REQUIRED libdrm>=2.4.0)
-  pkg_check_modules(LIBGBM REQUIRED gbm>=1.0.0)
   set(CONTEXT_SOURCE
     ContextSingleton.cpp
     DrmDisplay.cpp
@@ -30,8 +28,6 @@ elseif(BUILD_FW MATCHES DRM)
     gbm)
   add_compile_options(-DDRM=1)
 elseif(BUILD_FW MATCHES WAYLAND)
-  pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client>=1.18.0)
-  pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-egl>=18.1.0)
   set(CONTEXT_SOURCE
     xdg-shell.c
     ContextSingleton.cpp
