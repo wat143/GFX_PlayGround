@@ -113,6 +113,7 @@ target_include_directories(videoStream
 )
 
 target_link_libraries(videoStream
+  pthread
   gstreamer-1.0
   gstbase-1.0
   gstapp-1.0
