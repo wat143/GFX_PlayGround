@@ -100,11 +100,9 @@ pkg_check_modules(GSTAPP REQUIRED gstreamer-app-1.0>=1.0.0)
 pkg_check_modules(GOBJECT REQUIRED gobject-2.0>=1.0.0)
 pkg_check_modules(GLIB REQUIRED glib-2.0>=1.0.0)
 foreach(DIR ${GSTREAMER_INCLUDE_DIRS})
-    message(${DIR})
     file(TO_CMAKE_PATH "${CMAKE_SYSROOT}/${DIR}" GST_DIR)
     list(APPEND GST_INCLUDE_DIRS ${GST_DIR})
 endforeach()
-message(${GST_INCLUDE_DIRS})
 target_include_directories(videoStream
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Context
