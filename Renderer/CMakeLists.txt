@@ -59,7 +59,7 @@ if(BUILD_FW MATCHES DISPMANX)
         DISPMANX_LIBS
 )
 else()
-  target_link_libraries(simple_teapot
+  target_link_libraries(simple_triangle
     EGL
     GLESv2
 )
@@ -182,4 +182,31 @@ target_link_libraries(simple_teapot_vk
     Mesh
 )
 
+endif()
+
+add_executable(skyBox skyBox.cpp)
+target_include_directories(skyBox
+  PRIVATE
+  ${CMAKE_SOURCE_DIR}/Mesh
+  ${CMAKE_SOURCE_DIR}/Context
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/glm
+  ${CMAKE_SOURCE_DIR}/stb
+  ${GFX_INCLUDE_PATH}/../src/hello_pi/libs/revision
+)
+
+target_link_libraries(skyBox
+  Mesh
+  Context
+)
+
+if(BUILD_FW MATCHES DISPMANX)
+  target_link_libraries(skyBox
+        DISPMANX_LIBS
+)
+else()
+  target_link_libraries(skyBox
+    EGL
+    GLESv2
+)
 endif()
