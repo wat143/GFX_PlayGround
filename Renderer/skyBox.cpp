@@ -19,25 +19,6 @@
 #define TEAPOT_OBJ_PATH "../Resources/teapot.obj"
 #define LOOP_COUNT 1000000
 
-static const char *vshader_cube = {
-    "attribute vec3 vertex;               \n"
-    "uniform mat4 mvp;                    \n"
-    "varying vec3 texCoord;               \n"
-    "void main() {                        \n"
-    "    texCoord = vertex;               \n"
-    "    gl_Position = vec4(vertex, 1.0); \n"
-    "}                                    \n"
-};
-
-static const char *fshader_cube = {
-    "precision mediump float;                        \n"
-    "uniform samplerCube cube;                       \n"
-    "varying vec3 texCoord;                          \n"
-    "void main() {                                   \n"
-    "    gl_FragColor = textureCube(cube, texCoord); \n"
-    "}                                               \n"
-};
-
 static const char *vshader_code = {
     "attribute vec3 vertex;                                  \n"
     "attribute vec3 normal;                                  \n"
@@ -48,7 +29,7 @@ static const char *vshader_code = {
     "varying vec3 vNormal;                                   \n"
     "void main() {                                           \n"
     "    gl_Position =                                       \n"
-    "        projection * view * model * vec4(vertex, 1.0) ; \n"
+    "        projection * view * model * vec4(vertex, 1.0);  \n"
     "    vPos = (model * vec4(vertex, 1.0)).xyz;             \n"
     "    vNormal = (model * vec4(normal, 0.0)).xyz;          \n"
     "}                                                       \n"
@@ -58,55 +39,127 @@ static const char *fshader_code = {
     "precision mediump float;                        \n"
     "uniform samplerCube cube;                       \n"
     "uniform vec3 eyePos;                            \n"
+    "uniform bool reflection;                        \n"
     "varying vec3 vPos;                              \n"
     "varying vec3 vNormal;                           \n"
     "void main() {                                   \n"
-    "    vec3 ref = reflect(vPos - eyePos, vNormal); \n"
+    "    vec3 ref;                                   \n"
+    "    if (reflection) {                           \n"
+    "        ref = reflect(vPos - eyePos, vNormal);  \n"
+    "    }                                           \n"
+    "    else {                                      \n"
+    "        ref = vPos;                             \n"
+    "    }                                           \n"
     "    gl_FragColor = textureCube(cube, ref);      \n"
     "}                                               \n"
 };
 
-glm::vec3 eyePos = {0.0, 2.0, 5.0};
+glm::vec3 eyePos = {0.0, 0.0, 10.0};
 
-const GLfloat cubeVertices[] = {
-    /* Front face */
+/* Cube Vertices */
+GLfloat cubeVertices[] = {
+    // Front face
     -1.0f, -1.0f,  1.0f,
      1.0f, -1.0f,  1.0f,
      1.0f,  1.0f,  1.0f,
     -1.0f,  1.0f,  1.0f,
 
-    /* Back face */
+    // Back face
     -1.0f, -1.0f, -1.0f,
      1.0f, -1.0f, -1.0f,
      1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f
+    -1.0f,  1.0f, -1.0f,
+
+    // Right face
+     1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+
+    // Left face
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+
+    // Top face
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    // Bottom face
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f
 };
 
-const GLuint cubeIndices[] = {
-    /* Front face */
+// Cube Normals
+GLfloat cubeNormals[] = {
+    // Front face
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+
+    // Back face
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+
+    // Right face
+     1.0f,  0.0f,  0.0f,
+     1.0f,  0.0f,  0.0f,
+     1.0f,  0.0f,  0.0f,
+     1.0f,  0.0f,  0.0f,
+
+    // Left face
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+
+    // Top face
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f,
+
+    // Bottom face
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f
+};
+
+GLuint cubeIndices[] = {
+    // Front face
     0, 1, 2,
     2, 3, 0,
 
-    /* Right face */
-    1, 5, 6,
-    6, 2, 1,
+    // Back face
+    4, 5, 6,
+    6, 7, 4,
 
-    /* Back face */
-    7, 6, 5,
-    5, 4, 7,
+    // Right face
+    8, 9, 10,
+    10, 11, 8,
 
-    /* Left face */
-    4, 0, 3,
-    3, 7, 4,
+    // Left face
+    12, 13, 14,
+    14, 15, 12,
 
-    /* Bottom face */
-    0, 4, 5,
-    5, 1, 0,
+    // Top face
+    16, 17, 18,
+    18, 19, 16,
 
-    /* Top face */
-    3, 2, 6,
-    6, 7, 3
+    // Bottom face
+    20, 21, 22,
+    22, 23, 20
 };
+
 
 const std::map<std::string, GLuint> cube_image_loc = {
     {"posX.png", GL_TEXTURE_CUBE_MAP_POSITIVE_X},
@@ -168,6 +221,8 @@ void init_gl(Context *context) {
 
     /* Enable depth test */
     glViewport(0, 0, w, h);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
 }
 
 void init_cube(Model *model) {
@@ -179,27 +234,35 @@ void init_cube(Model *model) {
     /* get attributes */
     model->attr["vertex"] =
         glGetAttribLocation(model->program, "vertex");
+    model->attr["normal"] =
+        glGetAttribLocation(model->program, "normal");
     /* bind data to VBO */
     glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
     glBufferData(GL_ARRAY_BUFFER,
                  sizeof(cubeVertices),
                  cubeVertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
+    glBufferData(GL_ARRAY_BUFFER,
+                 sizeof(cubeNormals),
+                 cubeNormals, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     /* bind index data */
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  sizeof(cubeIndices),
                  cubeIndices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     /* get uniforms */
-    model->uni["mvp"] = glGetUniformLocation(model->program, "mvp");
+    model->uni["model"] = glGetUniformLocation(model->program, "model");
+    model->uni["view"] = glGetUniformLocation(model->program, "view");
+    model->uni["projection"] = glGetUniformLocation(model->program, "projection");
     model->uni["cube"] = glGetUniformLocation(model->program, "cube");
+    model->uni["eyePos"] = glGetUniformLocation(model->program, "eyePos");
+    model->uni["reflection"] = glGetUniformLocation(model->program, "reflection");
 }
 
 void init_model(Model *model, Mesh *mesh) {
-    /* compile shader and link program */
-    build_program(model->shader_codes, model->program);
-    glUseProgram(model->program);
     /* generate buffers */
     glGenBuffers(3, model->bufs);
     /* get attributes */
@@ -229,6 +292,7 @@ void init_model(Model *model, Mesh *mesh) {
     model->uni["projection"] = glGetUniformLocation(model->program, "projection");
     model->uni["cube"] = glGetUniformLocation(model->program, "cube");
     model->uni["eyePos"] = glGetUniformLocation(model->program, "eyePos");
+    model->uni["reflection"] = glGetUniformLocation(model->program, "reclection");
 }
 
 void init_texture(GLuint &texture) {
@@ -248,64 +312,20 @@ void init_texture(GLuint &texture) {
     /* generate mipmap */
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     /* parameter setup */
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     /* unbind texture */
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
-void redraw_cube(Context *context, Model *model, unsigned int cnt, GLuint texture) {
-    float rad = M_PI * cnt / 180, aspect;
-    glm::mat4 M, V, P, mvp;
-
-    /* enable program */
-    glUseProgram(model->program);
-    /* Clear previous rendering */
-    glClear(GL_COLOR_BUFFER_BIT);
-    /* setup matrix */
-    M = glm::identity<glm::mat4>();
-    M = glm::scale(M, glm::vec3(200.0f, 200.0f, 200.0f));
-    V = glm::lookAt(glm::vec3(1.0, 0.0, 0.0),
-                    glm::vec3(0.0, 0.0, 0.0),
-                    glm::vec3(0.0, 1.0, 0.0));
-    P = glm::perspective(glm::radians(45.0f),
-                         1.0f, 0.1f, 100.0f);
-    mvp = P * V * M;
-    /* enable attributes */
-    glEnableVertexAttribArray(model->attr["vertex"]);
-    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
-    glVertexAttribPointer(model->attr["vertex"], 3,
-                          GL_FLOAT, GL_TRUE, 0, 0);
-    /* update MVP matrix */
-    glUniformMatrix4fv(model->uni["mvp"], 1, GL_FALSE, &mvp[0][0]);
-    /* bind texture */
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-    glUniform1i(model->uni["cube"], 0);
-    /* enable element array buffer */
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[1]);
-    glDrawElements(GL_TRIANGLES, sizeof(cubeIndices) / sizeof(GLuint),
-                   GL_UNSIGNED_INT, 0);
-    /* unbind texture */
-    glFlush();
-}
-
-void redraw(Context *context, Model *model, Mesh *mesh, GLuint &texture, int cnt) {
-    float rad = M_PI * cnt / 180, aspect;
-    unsigned int w, h;
+void redraw_cube(Context *context, Model *model) {
     glm::mat4 M, V, P;
-
-    /* enable program */
-    glUseProgram(model->program);
-
-    /* calculate aspect ration for projection matrix creation */
-    context->getMode(w, h);
-    aspect = static_cast<float>(h) / static_cast<float>(w);
     /* setup matrix */
     M = glm::identity<glm::mat4>();
-    M = glm::rotate(M, rad, glm::vec3(0.0, 1.0, 0.0));
-    V = glm::lookAt(glm::vec3(0.0, 0.0, 10.0),
+    M = glm::scale(M, glm::vec3(10.0f, 10.0f, 10.0f));
+    V = glm::lookAt(eyePos,
                     glm::vec3(0.0, 0.0, 0.0),
                     glm::vec3(0.0, 1.0, 0.0));
     P = glm::perspective(glm::radians(45.0f),
@@ -319,22 +339,52 @@ void redraw(Context *context, Model *model, Mesh *mesh, GLuint &texture, int cnt
     glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
     glVertexAttribPointer(model->attr["normal"], 3,
                           GL_FLOAT, GL_TRUE, 0, 0);
-    /* bind texture data */
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
-    glUniform1i(model->uni["cube"], 0);
+    /* update MVP matrix */
+    glUniformMatrix4fv(model->uni["model"], 1, GL_FALSE, &M[0][0]);
+    glUniformMatrix4fv(model->uni["view"], 1, GL_FALSE, &V[0][0]);
+    glUniformMatrix4fv(model->uni["projection"], 1, GL_FALSE, &P[0][0]);
+    /* set eye position */
+    glUniform3fv(model->uni["eyePos"], 1, &eyePos[0]);
+    /* disable reflection */
+    glUniform1i(model->uni["reflection"], false);
+    /* enable element array buffer */
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
+    glDrawElements(GL_TRIANGLES, sizeof(cubeIndices) / sizeof(GLuint),
+                   GL_UNSIGNED_INT, 0);
+}
+
+void redraw(Context *context, Model *model, Mesh *mesh, int cnt) {
+    float rad = M_PI * cnt / 180, aspect;
+    unsigned int w, h;
+    glm::mat4 M, V, P;
+
+    /* setup matrix */
+    M = glm::identity<glm::mat4>();
+    M = glm::rotate(M, rad, glm::vec3(0.0, 1.0, 0.0));
+    V = glm::lookAt(eyePos,
+                    glm::vec3(0.0, 0.0, 0.0),
+                    glm::vec3(0.0, 1.0, 0.0));
+    P = glm::perspective(glm::radians(45.0f),
+                         1.0f, 0.1f, 100.0f);
+    /* enable attributes */
+    glEnableVertexAttribArray(model->attr["vertex"]);
+    glEnableVertexAttribArray(model->attr["normal"]);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[0]);
+    glVertexAttribPointer(model->attr["vertex"], 3,
+                          GL_FLOAT, GL_TRUE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, model->bufs[1]);
+    glVertexAttribPointer(model->attr["normal"], 3,
+                          GL_FLOAT, GL_TRUE, 0, 0);
     /* update mvp matrix in shader */
     glUniformMatrix4fv(model->uni["model"], 1, GL_FALSE, &M[0][0]);
     glUniformMatrix4fv(model->uni["view"], 1, GL_FALSE, &V[0][0]);
     glUniformMatrix4fv(model->uni["projection"], 1, GL_FALSE, &P[0][0]);
     glUniform3fv(model->uni["eyePos"], 1, &eyePos[0]);
+    glUniform1i(model->uni["reflection"], true);
     /* enable element array buffer */
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->bufs[2]);
     glDrawElements(GL_TRIANGLES, mesh->getIndexSize(),
                    GL_UNSIGNED_INT, 0);
-    /* unbind texture */
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-    glFlush();
 }
 
 int main() {
@@ -355,22 +405,31 @@ int main() {
     assert(context);
     init_gl(context);
     /* init cube model */
-    model_cube.shader_codes.push_back(vshader_cube);
-    model_cube.shader_codes.push_back(fshader_cube);
-    model_cube.bufs = new GLuint[2];
+    model_cube.shader_codes.push_back(vshader_code);
+    model_cube.shader_codes.push_back(fshader_code);
+    model_cube.bufs = new GLuint[3];
     init_cube(&model_cube);
     /* init teapot model */
-    model_teapot.shader_codes.push_back(vshader_code);
-    model_teapot.shader_codes.push_back(fshader_code);
+    /* use same program */
+    model_teapot.program = model_cube.program;
     model_teapot.bufs = new GLuint[3];
     mesh_teapot->import();
     init_model(&model_teapot, mesh_teapot);
     /* load cube map texture data */
     init_texture(texture);
     while (cnt < LOOP_COUNT) {
-        redraw_cube(context, &model_cube, cnt, texture);
-        redraw(context, &model_teapot, mesh_teapot, texture, cnt);
-        cnt++;
+        glClearDepthf(1.0);
+        /* Clear previous rendering */
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        /* bind texture data */
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+        glUniform1i(model_cube.uni["cube"], 0);
+        /* redraw cube and teapot */
+        redraw_cube(context, &model_cube);
+        redraw(context, &model_teapot, mesh_teapot, cnt++);
+        /* flush and wait buffer flip */
+        glFlush();
         context->swapBuffers();
     }
 
