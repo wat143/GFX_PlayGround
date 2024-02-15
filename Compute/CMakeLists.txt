@@ -8,3 +8,8 @@ add_executable(vadd vadd.cpp)
 target_link_libraries(vadd
   ${MyLibs}
 )
+
+add_executable(device_info deviceInfo.cpp)
+target_link_libraries(device_info
+  ${MyLibs}
+)
