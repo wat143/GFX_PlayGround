@@ -13,3 +13,8 @@ add_executable(device_info deviceInfo.cpp)
 target_link_libraries(device_info
   ${MyLibs}
 )
+
+add_executable(matrix_mul matrixMul.cpp)
+target_link_libraries(matrix_mul
+  ${MyLibs}
+)
