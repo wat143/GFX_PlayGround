@@ -54,8 +54,14 @@ static void handle_toplevel_configure(void* data, struct xdg_toplevel* toplevel,
                                       int32_t width, int32_t height,
                                       struct wl_array* states) {
     struct display* display = static_cast<struct display*>(data);
-    display->width = width;
-    display->height = height;
+    if (width != 0 && height != 0) {
+        display->width = width;
+        display->height = height;
+    }
+    else {
+        display->width = 1920;
+        display->height = 1080;
+    }
 }
 
 static void
