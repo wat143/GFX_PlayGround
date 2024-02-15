@@ -22,6 +22,11 @@ if(VULKAN_APP MATCHES ON)
     pkg_check_modules(LIBGLFW3 REQUIRED glfw3>=3.3.0)
 endif()
 
+set(OPENCL_APP CACHE STRING "Enable OpenCL sample app build")
+if(OPENCL_APP MATCHES ON)
+        add_subdirectory(Compute)
+endif()
+
 add_subdirectory(Context)
 add_subdirectory(Mesh)
 add_subdirectory(Renderer)
