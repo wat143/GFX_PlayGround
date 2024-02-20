@@ -65,6 +65,9 @@ int main() {
                                nullptr, &event);
     queue.finish();
 
+    /* get result */
+    cl::copy(queue, cl_c, vec_c.begin(), vec_c.end());
+
     // Wait event completion and get start/end time
     event.wait();
     cl_ulong start, end;

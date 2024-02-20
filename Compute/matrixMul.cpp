@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
 
     /* create program */
     cl::Program program(context, mat_mul_kernel);
+    program.build({device});
 
     /* Create clmem for a, b and c */
     /* host_ptr as nullptr since the data will be transffered later */
@@ -99,10 +100,11 @@ int main(int argc, char **argv) {
     cl::Buffer cl_c(context, CL_MEM_WRITE_ONLY, sizeof(float) * width * height);
 
     /* create kernel */
-    cl::Kernel kernel(program, "vadd");
-    kernel.setArg(0, cl_a);
-    kernel.setArg(1, cl_b);
-    kernel.setArg(2, cl_c);
+    cl::Kernel kernel(program, "mat_mul_kernel");
+    kernel.setArg(0, width);
+    kernel.setArg(1, cl_a);
+    kernel.setArg(2, cl_b);
+    kernel.setArg(3, cl_c);
 
     /* execute kernel */
     cl::Event event;
@@ -114,6 +116,10 @@ int main(int argc, char **argv) {
 
     queue.finish();
     event.wait();
+
+    /* get result */
+    cl::copy(queue, cl_c, vec_c.begin(), vec_c.end());
+
     cl_ulong start, end;
     start = event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
     end = event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
