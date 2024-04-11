@@ -34,6 +34,7 @@ public:
     void* getNativeDisplay();
     void* getNativeWindow();
     void* getDisplayDev();
+    int getFormat();
     int pageFlip();
 };
 

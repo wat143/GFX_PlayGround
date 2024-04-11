@@ -15,6 +15,7 @@ public:
     virtual void* getNativeDisplay()=0;
     virtual void* getNativeWindow()=0;
     virtual void* getDisplayDev()=0;
+    virtual int getFormat()=0;
     virtual int pageFlip()=0;
     int getFWType() { return FWType; };
     void getMode(unsigned int& w, unsigned int& h) {

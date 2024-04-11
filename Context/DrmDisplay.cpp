@@ -36,6 +36,10 @@ void* DrmDisplay::getDisplayDev() {
     return gbm->dev;
 }
 
+int DrmDisplay::getFormat() {
+    return gbm->format;
+}
+
 struct drmCrtc* DrmDisplay::findCrtc(drmModeRes* res, drmModeConnector* connector) {
     drmModeEncoder* encoder = nullptr;
     struct drmCrtc* crtc = new struct drmCrtc;
