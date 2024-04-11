@@ -13,6 +13,7 @@ private:
     EGLContext context;
     NativeDisplay* nativeDisp;
     int fwType;
+    void ChooseConfig(EGLDisplay display, const EGLint* attribs, EGLint visualID, EGLConfig *configOut);
 public:
     EglContext(NativeDisplay*, int);
     ~EglContext();

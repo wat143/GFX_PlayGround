@@ -149,6 +149,11 @@ void* WaylandDisplay::getDisplayDev() {
     return display->display;
 }
 
+int WaylandDisplay::getFormat() {
+    /* Unsupported */
+    return -1;
+}
+
 int WaylandDisplay::pageFlip() {
     /* NOP */
     return 0;

@@ -8,14 +8,16 @@
 EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
     int ret = -1;
     EGLint num_config = 0;
+    EGLConfig config;
     const EGLint attribute_list[] =
         {
-            EGL_RED_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_BLUE_SIZE, 8,
-            EGL_ALPHA_SIZE, 8,
-            EGL_DEPTH_SIZE, 24,
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+            EGL_RED_SIZE, 1,
+            EGL_GREEN_SIZE, 1,
+            EGL_BLUE_SIZE, 1,
+            EGL_ALPHA_SIZE, 0,
+            EGL_DEPTH_SIZE, 1,
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
             EGL_NONE
         };
 
@@ -40,10 +42,10 @@ EglContext::EglContext(NativeDisplay* disp, int api):Context(disp, api){
     assert(ret != EGL_FALSE);
 
     // Get an appropriate EGL frame buffer configuration
-    EGLConfig config;
-    ret = eglChooseConfig(display, attribute_list, &config, 1, &num_config);
-    assert(ret != EGL_FALSE);
-
+    if (fwType == Drm)
+        ChooseConfig(display, attribute_list, static_cast<EGLint>(disp->getFormat()), &config);
+    else
+        ChooseConfig(display, attribute_list, 0, &config);
     // Bind GLESv2
     if (API == OpenGLESv2)
         ret = eglBindAPI(EGL_OPENGL_ES_API);
@@ -101,4 +103,35 @@ int EglContext::swapBuffers() {
     else
         ret = eglSwapBuffers(display, surface);
     return ret;
+}
+
+void EglContext::ChooseConfig(EGLDisplay display, const EGLint* attribs, EGLint visualID, EGLConfig *configOut) {
+    EGLint count = 0, matched = 0, ret;
+    EGLConfig *configs;
+    int configIdx = -1;
+
+    ret = eglGetConfigs(display, NULL, 0, &count);
+    assert(ret != EGL_FALSE && count > 0);
+    configs = new EGLConfig[count];
+    ret = eglChooseConfig(display, attribs, configs, count, &matched);
+    assert(ret != EGL_FALSE);
+    if (!visualID)
+        configIdx = 0;
+    if (configIdx == -1) {
+        for (int i = 0; i < count; i++) {
+            EGLint id;
+            if (!eglGetConfigAttrib(display, configs[i], EGL_NATIVE_VISUAL_ID, &id))
+                continue;
+            if (visualID == id) {
+                configIdx = i;
+                break;
+            }
+        }
+    }
+    if (configIdx != -1) {
+        std::cout << "Found EGL config: " << configIdx << std::endl;
+        *configOut = configs[configIdx];
+    }
+    delete[] configs;
+    assert(configIdx != -1);
 }
