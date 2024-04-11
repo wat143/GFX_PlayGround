@@ -195,6 +195,14 @@ int DrmDisplay::initDrm(std::string dev_name) {
   
     assert(drm);
     drm->fd = open(dev_name.c_str(), O_RDWR);
+    /* set capabilities for atomic commit */
+    ret = drmSetClientCap(drm->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+    if (ret)
+        std::cerr << "Universal planes are not supported!\n";
+    ret = drmSetClientCap(drm->fd, DRM_CLIENT_CAP_ATOMIC, 1);
+    if (ret)
+        std::cerr << "Atomic API is not supported!\n";
+
     resources = drmModeGetResources(drm->fd);
     if (resources == nullptr) {
         std::cerr << "Failed to get DRM resources " << errno << std::endl;
@@ -379,11 +387,15 @@ int DrmDisplay::pageFlipLegacy() {
     return 0;
 }
 
+/* Used only for vsync wait of atomic commit case */
+/* ToDo: create for each CRTCs used for atomic commit */
+/* Fence is better solution but needs fence support device... */
+static int pendingFlipAtomic;
+
 static void pageFlipHandlerAtomic(int fd, unsigned int frame, unsigned int sec,
                                   unsigned int usec, unsigned int crtc_id, void* data)
 {
-    int* pendingFlip = static_cast<int*>(data);
-    *pendingFlip = 0;
+    pendingFlipAtomic = 0;
 }
 
 static int atomicCommit(struct drm* drm, int width, int height, int flags) {
@@ -445,7 +457,7 @@ int DrmDisplay::pageFlipAtomic() {
     struct gbm_bo* next_bo;
     struct drmOutput* output = drm->output;
     uint32_t crtcId, connId;
-    int ret, pendingFlip = 1;
+    int ret;
     drmEventContext eventCtx = {
         .version = 3,
         .page_flip_handler2 = pageFlipHandlerAtomic,
@@ -459,13 +471,14 @@ int DrmDisplay::pageFlipAtomic() {
         std::cerr << "failed to get FB " << strerror(errno) << std::endl;
         return ret;
     }
-    pendingFlip = 1;
+    pendingFlipAtomic = 1;
     if (firstFlip) {
         flags = DRM_MODE_ATOMIC_ALLOW_MODESET;
         firstFlip = false;
     }
+
     atomicCommit(drm, window_w, window_h, flags);
-    while (pendingFlip) {
+    while (pendingFlipAtomic) {
         FD_ZERO(&fds);
         FD_SET(0, &fds);
         FD_SET(drm->fd, &fds);
