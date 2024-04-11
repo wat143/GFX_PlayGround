@@ -9,8 +9,13 @@
 
 DrmDisplay::DrmDisplay(int type):NativeDisplay(type){
     drm = new struct drm;
-    if(initDrm("/dev/dri/card1"))
-        std::cerr << "Failed to init DRM\n";
+    std::string card_dev = "/dev/dri/card";
+    /* try card0 to card9 */
+    for (int i = 0; i < 9; i++) {
+        std::string dev_file = card_dev + std::to_string(i);
+        if(!initDrm(dev_file))
+            break;
+    }
     /* ToDo: format and modifier shall be configurable */
     gbm = new struct gbm;
     if (initGbm(DRM_FORMAT_XRGB8888, DRM_FORMAT_MOD_LINEAR))
@@ -195,6 +200,10 @@ int DrmDisplay::initDrm(std::string dev_name) {
   
     assert(drm);
     drm->fd = open(dev_name.c_str(), O_RDWR);
+    if (drm->fd < 0) {
+        std::cerr << "Failed to open " << dev_name << std::endl;
+        return -1;
+    }
     /* set capabilities for atomic commit */
     ret = drmSetClientCap(drm->fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
     if (ret)
