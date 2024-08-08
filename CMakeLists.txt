@@ -21,7 +21,7 @@ endif()
 set(VULKAN_APP CACHE STRING "Enable vulkan sample app build")
 if(VULKAN_APP MATCHES ON)
     set(VULKAN_BUILD 1)
-    pkg_check_modules(LIBVULKAN REQUIRED vulkan>=1.3.0)
+    pkg_check_modules(LIBVULKAN REQUIRED vulkan>=1.1.0)
     pkg_check_modules(LIBGLFW3 REQUIRED glfw3>=3.3.0)
 endif()
 
