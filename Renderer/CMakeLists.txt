@@ -153,9 +153,23 @@ add_custom_command(
 )
 add_custom_target(FragShader DEPENDS ${SHADER_DST}/frag.spv)
 
+add_custom_command(
+    OUTPUT ${SHADER_DST}/fragTex.spv
+    COMMAND glslc ${SHADER_SRC}/shaderTex.frag -o ${SHADER_DST}/fragTex.spv
+    DEPENDS ${SHADER_SRC}/shaderTex.frag
+)
+add_custom_target(FragTexShader DEPENDS ${SHADER_DST}/fragTex.spv)
+
+add_custom_command(
+    OUTPUT ${SHADER_DST}/vertTex.spv
+    COMMAND glslc ${SHADER_SRC}/shaderTex.vert -o ${SHADER_DST}/vertTex.spv
+    DEPENDS ${SHADER_SRC}/shaderTex.vert
+)
+add_custom_target(VertTexShader DEPENDS ${SHADER_DST}/vertTex.spv)
+
 add_executable(vulkanHelloTriangle vulkanHelloTriangle.cpp)
 add_compile_definitions(NDEBUG)
-add_dependencies(vulkanHelloTriangle VertShader FragShader)
+add_dependencies(vulkanHelloTriangle VertTexShader FragTexShader)
 
 target_link_libraries(vulkanHelloTriangle
     vulkan
