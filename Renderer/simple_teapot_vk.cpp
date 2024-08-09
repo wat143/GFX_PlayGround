@@ -1323,7 +1323,7 @@ int main() {
     Mesh *mesh = new AssimpMesh(TEAPOT_OBJ_PATH);
     mesh->import();
     float *vert_pos = mesh->getVertexPos();
-    uint16_t *index_data = static_cast<uint16_t*>(mesh->getIndex());
+    int *index_data = mesh->getIndex();
     for (int i = 0; i < mesh->getVertexDataSize(); i+=3) {
         Vertex vert = {
             {vert_pos[i], vert_pos[i+1], vert_pos[i+2]},
@@ -1332,7 +1332,7 @@ int main() {
         vertices.push_back(vert);
     }
     for (int i = 0; i < mesh->getIndexSize(); i++)
-        indices.push_back(index_data[i]);
+        indices.push_back(static_cast<uint16_t>(index_data[i]));
     try {
         app.run();
     } catch (const std::exception& e) {
