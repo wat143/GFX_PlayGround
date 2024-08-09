@@ -124,6 +124,10 @@ target_link_libraries(videoStream
 )
 
 if(VULKAN_BUILD MATCHES 1)
+# Set C++ standard version
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 # Build shader files
 set(SHADER_SRC ${CMAKE_SOURCE_DIR}/Renderer/shaders)
 set(SHADER_DST ${CMAKE_BINARY_DIR}/Renderer/shaders)
