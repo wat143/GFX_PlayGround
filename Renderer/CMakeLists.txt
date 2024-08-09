@@ -174,11 +174,14 @@ add_dependencies(vulkanHelloTriangle VertTexShader FragTexShader)
 target_link_libraries(vulkanHelloTriangle
     vulkan
     glfw
+    assimp
+    Mesh
 )
 
 target_include_directories(vulkanHelloTriangle
   PRIVATE
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/Mesh
   ${CMAKE_SOURCE_DIR}/glm
 )
 
