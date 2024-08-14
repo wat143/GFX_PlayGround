@@ -1309,11 +1309,15 @@ int main() {
     mesh->import();
     float *vert_pos = mesh->getVertexPos();
     int *index_data = mesh->getIndex();
-    for (int i = 0; i < mesh->getVertexDataSize(); i+=3) {
-        Vertex vert = {
-            {vert_pos[i], vert_pos[i+1], vert_pos[i+2]},
-            {0.0f, 0.7f, 0.7f}
-        };
+    for (int i = 0, j = 0; i < mesh->getVertexDataSize(); i+=3, j++) {
+        Vertex vert;
+        vert.pos = glm::vec3(vert_pos[i], vert_pos[i+1], vert_pos[i+2]);
+        if (j % 3 == 0)
+            vert.color = glm::vec3(0.8f, 0.1f, 0.1f);
+        else if (j % 3 == 1)
+            vert.color = glm::vec3(0.1f, 0.8f, 0.1f);
+        else if (j % 3 == 2)
+            vert.color = glm::vec3(0.1f, 0.1f, 0.8f);
         vertices.push_back(vert);
     }
     for (int i = 0; i < mesh->getIndexSize(); i++)
