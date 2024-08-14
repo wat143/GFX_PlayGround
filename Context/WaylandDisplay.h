@@ -33,6 +33,7 @@ public:
     ~WaylandDisplay();
     void* getNativeDisplay();
     void* getNativeWindow();
+    void* getSurface();
     void* getDisplayDev();
     int getFormat();
     int pageFlip();

@@ -37,6 +37,11 @@ void* DrmDisplay::getNativeWindow() {
     return gbm->surface;
 }
 
+void* DrmDisplay::getSurface() {
+    /* similar to getNativeWindow() */
+    return gbm->surface;
+}
+
 void* DrmDisplay::getDisplayDev() {
     return gbm->dev;
 }

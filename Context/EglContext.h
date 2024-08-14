@@ -20,6 +20,7 @@ public:
     void* getDisplay();
     void* getSurface();
     void* getWindow();
+    void setInstance(void* instance);
     int makeCurrent();
     int swapBuffers();
 };

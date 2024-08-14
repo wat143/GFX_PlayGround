@@ -86,6 +86,8 @@ void* EglContext::getDisplay() { return (void*)&display; }
 
 void* EglContext::getSurface() { return (void*)&surface; }
 
+void EglContext::setInstance(void *instance) { /* NOP */; }
+
 void* EglContext::getWindow() { return nullptr; }
 
 int EglContext::makeCurrent() {

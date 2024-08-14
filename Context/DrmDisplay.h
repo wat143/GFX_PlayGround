@@ -82,6 +82,7 @@ class DrmDisplay : public NativeDisplay {
   ~DrmDisplay();
   void* getNativeDisplay();
   void* getNativeWindow();
+  void* getSurface();
   void* getDisplayDev();
   int getFormat();
   int pageFlip();

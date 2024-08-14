@@ -1,6 +1,5 @@
-#define GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_wayland.h>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -20,7 +19,10 @@
 #include <optional>
 #include <set>
 
+#include "Context.h"
+#include "ContextFactory.h"
 #include "AssimpMesh.h"
+#include "Utils.h"
 
 #define TEAPOT_OBJ_PATH "../Resources/teapot.obj"
 
@@ -124,16 +126,14 @@ std::vector<uint16_t> indices;
 
 class VkApplication {
 public:
+    Context *context;
     void run() {
-        initWindow();
         initVulkan();
         mainLoop();
         cleanup();
     }
 
 private:
-    GLFWwindow* window;
-
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
@@ -179,21 +179,6 @@ private:
 
     bool framebufferResized = false;
 
-    void initWindow() {
-        glfwInit();
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-    }
-
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<VkApplication*>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-    }
-
     void initVulkan() {
         createInstance();
         setupDebugMessenger();
@@ -217,8 +202,7 @@ private:
     }
 
     void mainLoop() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
+        while (1) {
             drawFrame();
         }
 
@@ -275,18 +259,13 @@ private:
 
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
-
-        glfwDestroyWindow(window);
-
-        glfwTerminate();
     }
 
     void recreateSwapChain() {
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(window, &width, &height);
+        unsigned int width = 0, height = 0;
+        context->getMode(width, height);
         while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(window, &width, &height);
-            glfwWaitEvents();
+            context->getMode(width, height);
         }
 
         vkDeviceWaitIdle(device);
@@ -316,7 +295,7 @@ private:
         createInfo.pApplicationInfo = &appInfo;
 
         auto extensions = getRequiredExtensions();
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        createInfo.enabledExtensionCount = extensions.size();
         createInfo.ppEnabledExtensionNames = extensions.data();
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -331,7 +310,6 @@ private:
 
             createInfo.pNext = nullptr;
         }
-
         if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
             throw std::runtime_error("failed to create instance!");
         }
@@ -363,7 +341,9 @@ private:
     }
 
     void createSurface() {
-        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+        context->setInstance(instance);
+        surface = static_cast<VkSurfaceKHR>(context->getSurface());
+        if (!surface) {
             throw std::runtime_error("failed to create window surface!");
         }
     }
@@ -1149,8 +1129,8 @@ private:
         if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return capabilities.currentExtent;
         } else {
-            int width, height;
-            glfwGetFramebufferSize(window, &width, &height);
+            unsigned int width, height;
+            context->getMode(width, height);
 
             VkExtent2D actualExtent = {
                 static_cast<uint32_t>(width),
@@ -1251,17 +1231,20 @@ private:
     }
 
     std::vector<const char*> getRequiredExtensions() {
-        uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        /* ToDo will support for other window frameworks that wayland */
+        uint32_t extensionCount = 0;
+        std::vector<const char*> ret;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        if (enableValidationLayers) {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        for (const auto& extension : extensions) {
+            if (!strcmp(extension.extensionName, VK_KHR_SURFACE_EXTENSION_NAME))
+                ret.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+            else if (!strcmp(extension.extensionName, VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME))
+                ret.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
         }
-
-        return extensions;
+        return ret;
     }
 
     bool checkValidationLayerSupport() {
@@ -1321,6 +1304,7 @@ private:
 
 int main() {
     VkApplication app;
+    ContextFactory factory;
     Mesh *mesh = new AssimpMesh(TEAPOT_OBJ_PATH);
     mesh->import();
     float *vert_pos = mesh->getVertexPos();
@@ -1334,6 +1318,9 @@ int main() {
     }
     for (int i = 0; i < mesh->getIndexSize(); i++)
         indices.push_back(static_cast<uint16_t>(index_data[i]));
+
+    app.context = factory.create(Wayland);
+
     try {
         app.run();
     } catch (const std::exception& e) {
