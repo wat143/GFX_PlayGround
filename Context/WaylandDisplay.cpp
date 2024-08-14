@@ -145,6 +145,10 @@ void* WaylandDisplay::getNativeWindow() {
     return display->egl_window;
 }
 
+void* WaylandDisplay::getSurface() {
+    return display->surface;
+}
+
 void* WaylandDisplay::getDisplayDev() {
     return display->display;
 }

@@ -13,6 +13,7 @@ public:
     virtual void* getWindow()=0;
     virtual void* getDisplay()=0;
     virtual void* getSurface()=0;
+    virtual void setInstance(void* instance){;} // Only required for Vulkan
     virtual int makeCurrent()=0;
     virtual int swapBuffers()=0;
     void getMode(unsigned int& w, unsigned int& h) { Disp->getMode(w, h); }

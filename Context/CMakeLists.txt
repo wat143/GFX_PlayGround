@@ -28,17 +28,31 @@ elseif(BUILD_FW MATCHES DRM)
     gbm)
   add_compile_options(-DDRM=1)
 elseif(BUILD_FW MATCHES WAYLAND)
-  set(CONTEXT_SOURCE
-    xdg-shell.c
-    ContextSingleton.cpp
-    WaylandDisplay.cpp
-    EglContext.cpp
-    ContextFactory.cpp)
-  set(CONTEXT_LIB
-    EGL
-    GLESv2
-    wayland-client
-    wayland-egl)
+  if(VULKAN_BUILD MATCHES 1)
+    set(CONTEXT_SOURCE
+      xdg-shell.c
+      ContextSingleton.cpp
+      WaylandDisplay.cpp
+      VkContext.cpp
+      ContextFactory.cpp)
+    set(CONTEXT_LIB
+      vulkan
+      wayland-client
+      wayland-egl)
+    add_compile_options(-DVULKAN=1)
+  else()
+    set(CONTEXT_SOURCE
+      xdg-shell.c
+      ContextSingleton.cpp
+      WaylandDisplay.cpp
+      EglContext.cpp
+      ContextFactory.cpp)
+    set(CONTEXT_LIB
+      EGL
+      GLESv2
+      wayland-client
+      wayland-egl)
+  endif()
   add_compile_options(-DWAYLAND=1)
 else()
   message(FATAL, "No FW is set")

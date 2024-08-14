@@ -193,14 +193,16 @@ add_dependencies(simple_teapot_vk VertShader3D FragShader)
 target_include_directories(simple_teapot_vk
   PRIVATE
   ${CMAKE_SOURCE_DIR}/Mesh
+  ${CMAKE_SOURCE_DIR}/Context
   ${CMAKE_SOURCE_DIR}/glm
+  ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(simple_teapot_vk
     vulkan
-    glfw
     assimp
     Mesh
+    Context
 )
 
 endif()

@@ -14,6 +14,7 @@ public:
     virtual ~NativeDisplay(){}
     virtual void* getNativeDisplay()=0;
     virtual void* getNativeWindow()=0;
+    virtual void* getSurface(){ return nullptr; }
     virtual void* getDisplayDev()=0;
     virtual int getFormat()=0;
     virtual int pageFlip()=0;

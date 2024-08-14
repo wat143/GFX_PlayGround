@@ -1,6 +1,7 @@
 #include <iostream>
 #include "ContextFactory.h"
 #include "EglContext.h"
+#include "VkContext.h"
 
 #include "Utils.h"
 
@@ -37,6 +38,10 @@ Context* ContextFactory::create(int fw_type) {
     }
     if (!disp)
         std::cerr << "Invalid FW type\n";
+#ifdef VULKAN
+    Context* context = new VkContext(disp, VULKAN);
+#else
     Context* context = new EglContext(disp, OpenGLESv2);
+#endif
     return context;
 }
