@@ -4,13 +4,20 @@
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
+#include <dlfcn.h>
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <gst/app/gstappsink.h>
+#include <gst/allocators/gstfdmemory.h>
 #include <glib.h>
+#include <drm/drm_fourcc.h>
 #include "videoStream.h"
 
 #define FILE_PATH "../Resources/BigBuckBunny_320x180.mp4"
+#define EGL_ATTR_MAX 20
+
+PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
+PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 
 /***** Wayland inititalization *****/
 /* registry callbacks */
@@ -188,6 +195,12 @@ struct egl* initEGL(struct display* display) {
                                           (EGLNativeWindowType)display->egl_window,
                                           NULL);
     eglMakeCurrent(egl->display, egl->surface, egl->surface, egl->context);
+
+    // Get function pointers
+    eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC)eglGetProcAddress("eglCreateEGLImageKHR");
+    glEGLImageTargetTexture2DOES =
+        (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC )dlsym(RTLD_DEFAULT, "glEGLImageTargetTexture2DOES");
+
     return egl;
 }
 /***********************************/
@@ -393,27 +406,93 @@ GstElement* setupPipeline(struct display* display) {
     return pipeline;
 }
 
+EGLImageKHR* createEGLImage(struct display* display, GstBuffer *buffer) {
+    int i = 0, j = 0, fd_cnt = 0, num_plane = 0;
+    int fds[3] = {-1};
+    EGLint attribs[EGL_ATTR_MAX] = {};
+
+    /* set width and height */
+    attribs[i++] = EGL_WIDTH;
+    attribs[i++] = display->width;
+    attribs[i++] = EGL_HEIGHT;
+    attribs[i++] = display->height;
+
+    /* format */
+    attribs[i++] = EGL_LINUX_DRM_FOURCC_EXT;
+    attribs[i++] = DRM_FORMAT_RGB888; // Test RGB first
+
+    /* fd */
+    num_plane = gst_buffer_n_memory(buffer);
+    fprintf(stderr, "Num plane: %d\n", num_plane);
+    for (j; j < num_plane; j++) {
+        GstMemory *mem = gst_buffer_peek_memory(buffer, j);
+        if (gst_is_fd_memory(mem)) {
+            fds[j] = gst_fd_memory_get_fd(mem);
+            fprintf(stderr, "FD %d\n", fds[j]);
+            if (fds[j] != -1) {
+                switch (j) {
+                case 0:
+                    attribs[i++] = EGL_DMA_BUF_PLANE0_FD_EXT;
+                    attribs[i++] = fds[j];
+                    attribs[i++] = EGL_DMA_BUF_PLANE0_OFFSET_EXT;
+                    attribs[i++] = 0;
+                    attribs[i++] = EGL_DMA_BUF_PLANE0_PITCH_EXT;
+                    attribs[i++] = display->width * 3; // Test RGB first
+                    break;
+                case 1:
+                    attribs[i++] = EGL_DMA_BUF_PLANE1_FD_EXT;
+                    attribs[i++] = fds[j];
+                    attribs[i++] = EGL_DMA_BUF_PLANE1_OFFSET_EXT;
+                    attribs[i++] = 0; // Need actual offset
+                    attribs[i++] = EGL_DMA_BUF_PLANE1_PITCH_EXT;
+                    attribs[i++] = display->width * 3; // Test RGB first
+                    break;
+                default:
+                    break;
+                }
+            }
+            else {
+                fprintf(stderr, "Failed to get FD\n");
+                break;
+            }
+        }
+        else
+            return NULL;
+    }
+    attribs[i] = EGL_NONE;
+    return eglCreateImageKHR(display->egl->display, display->egl->context, EGL_LINUX_DMA_BUF_EXT, NULL, attribs);
+}
+
 void draw(struct display* display) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     GstBuffer* buffer = NULL;
-    GstMapInfo map;
-    GstMemory* memory = NULL;
+    //    GstMapInfo map;
+    //    GstMemory* memory = NULL;
+    EGLImageKHR* eglImage;
+
     display->pending = FALSE;
     buffer = display->ringBuff->pop(display->ringBuff);
     if (buffer == NULL) {
         fprintf(stderr, "[%s]: buffer is NULL\n", __func__);
         return;
     }
-    memory = gst_buffer_get_memory(buffer, 0);
-    gst_memory_map(memory, &map, GST_MAP_READ);
+    //    memory = gst_buffer_get_memory(buffer, 0);
+    //    gst_memory_map(memory, &map, GST_MAP_READ);
+    eglImage = createEGLImage(display, buffer);
+    if (!eglImage) {
+        fprintf(stderr, "Failed to create EGLImage\n");
+        gst_buffer_unref(buffer);
+        return;
+    }
 
     glBindTexture(GL_TEXTURE_2D, display->gl->texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 display->videoWidth, display->videoHeight,
-                 0, GL_RGB, GL_UNSIGNED_BYTE, map.data);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, eglImage);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, */
+    /*              display->videoWidth, display->videoHeight, */
+    /*              0, GL_RGB, GL_UNSIGNED_BYTE, map.data); */
 
     glUniform1i(display->gl->uniTex, 0);
-    gst_memory_unmap(memory, &map);
+
     glBindBuffer(GL_ARRAY_BUFFER, display->gl->vbo_pos);
     glBindBuffer(GL_ARRAY_BUFFER, display->gl->vbo_coord);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->gl->ibo);

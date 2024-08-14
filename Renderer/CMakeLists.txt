@@ -99,6 +99,7 @@ pkg_check_modules(GSTBASE REQUIRED gstreamer-base-1.0>=1.0.0)
 pkg_check_modules(GSTAPP REQUIRED gstreamer-app-1.0>=1.0.0)
 pkg_check_modules(GOBJECT REQUIRED gobject-2.0>=1.0.0)
 pkg_check_modules(GLIB REQUIRED glib-2.0>=1.0.0)
+pkg_check_modules(GSTAPP REQUIRED gstreamer-allocators-1.0>=1.16.0)
 foreach(DIR ${GSTREAMER_INCLUDE_DIRS})
     file(TO_CMAKE_PATH "${CMAKE_SYSROOT}/${DIR}" GST_DIR)
     list(APPEND GST_INCLUDE_DIRS ${GST_DIR})
@@ -117,6 +118,7 @@ target_link_libraries(videoStream
   gstapp-1.0
   gobject-2.0
   glib-2.0
+  gstallocators-1.0
   EGL
   GLESv2
   wayland-client
