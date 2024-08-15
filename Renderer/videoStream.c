@@ -11,6 +11,7 @@
 #include "videoStream.h"
 
 #define FILE_PATH "../Resources/BigBuckBunny_320x180.mp4"
+#define PIPELINE_FILE_PATH "pipeline.txt"
 
 /***** Wayland inititalization *****/
 /* registry callbacks */
@@ -342,52 +343,184 @@ static void on_pad_added(GstElement* element, GstPad *pad, gpointer data) {
     gst_object_unref(sink_pad);
 }
 
-GstElement* setupPipeline(struct display* display) {
+typedef struct GstElemList GstElemList;
+struct GstElemList {
+    GstElement *elem;
+    GstElemList *next;
+};
+
+GstElemList* createNode(GstElement* elem) {
+    GstElemList* ret = (GstElemList*)malloc(sizeof(GstElemList));
+    if (!ret) {
+        fprintf(stderr, "Failed to allocate GstElemList\n");
+        return NULL;
+    }
+    ret->elem = elem;
+    ret->next = NULL;
+    return ret;
+}
+
+void removeLineBreak(char *str) {
+    int i = 0;
+    while (str[i] != '\0') {
+        if (str[i] == '\n') {
+            str[i] = '\0';
+            break;
+        }
+        i++;
+    }
+}
+
+GstElemList* parsePipelineFile(struct display* display, char *file_name) {
+    GstElemList *head = NULL, *itr = NULL;
+    FILE *file = fopen(file_name, "r");
+    int i = 0, element_cnt[ELEMENT_MAX] = {0};
+    if (file == NULL) {
+        perror("Unable to open file");
+        return NULL;
+    }
+
+    char line[128];
+    while (fgets(line, sizeof(line), file)) {
+        GstElement *element;
+        char element_name[128] = "";
+        char *token = strtok(line, ",");
+        char elem[128] = "", name[128] = "";
+        char option[128] = "", arg[128] = "";
+        char tail[2] = "0\n";
+        strcpy(elem, token);
+        token = strtok(NULL, ",");
+        strcpy(name, token);
+        token = strtok(NULL, ",");
+        char *subtoken = strtok(token, "=");
+        while (subtoken) {
+            if (subtoken && i == 0)
+                strcpy(option, subtoken);
+            else if (token && i == 1)
+                strcpy(arg, subtoken);
+            i++;
+            subtoken = strtok(NULL, "=");
+        }
+        i = 0;
+        removeLineBreak(elem);
+        removeLineBreak(name);
+        removeLineBreak(option);
+        removeLineBreak(arg);
+        printf("Parsing Element: %s %s %s %s\n", elem, name, option, arg);
+        /* create element name */
+        if (!strcmp(elem, "src")) {
+            strcpy(element_name, elem_list[SRC]);
+            tail[0] += element_cnt[SRC]++;
+            strcat(element_name, tail);
+        }
+        else if (!strcmp(elem, "demux")) {
+            strcpy(element_name, elem_list[DEMUX]);
+            tail[0] += element_cnt[DEMUX]++;
+            strcat(element_name, tail);
+        }
+        else if (!strcmp(elem, "parser")) {
+            strcpy(element_name, elem_list[PARSER]);
+            tail[0] += element_cnt[PARSER]++;
+            strcat(element_name, tail);
+        }
+        else if (!strcmp(elem, "decoder")) {
+            strcpy(element_name, elem_list[DECODER]);
+            tail[0] += element_cnt[DECODER]++;
+            strcat(element_name, tail);
+        }
+        else if (!strcmp(elem, "capsfilter")) {
+            strcpy(element_name, elem_list[CAPS]);
+            tail[0] += element_cnt[CAPS]++;
+            strcat(element_name, tail);
+        }
+        else if (!strcmp(elem, "converter")) {
+            strcpy(element_name, elem_list[CONVERTER]);
+            tail[0] += element_cnt[CONVERTER]++;
+            strcat(element_name, tail);
+        }
+        else if (!strcmp(elem, "sink")) {
+            strcpy(element_name, elem_list[SINK]);
+            tail[0] += element_cnt[SINK]++;
+            strcat(element_name, tail);
+        }
+        else {
+            fprintf(stderr, "Invalid element\n");
+            continue;
+        }
+        /* create GstElement */
+        if (!strcmp(elem, "capsfilter")) {
+            element = gst_element_factory_make("capsfilter", element_name);
+            GstCaps* caps =
+                gst_caps_new_simple(name, option,
+                                    G_TYPE_STRING, arg, NULL);
+            g_object_set(G_OBJECT(element), "caps", caps, NULL);
+            gst_caps_unref(caps);
+        }
+        else
+            element = gst_element_factory_make(name, element_name);
+        /* setup signal for sink */
+        if (!strcmp(elem, "sink")) {
+            // Configure emit signal for appsink
+            g_object_set(G_OBJECT(element), "emit-signals", TRUE, NULL);
+            // Connect new-sample event
+            g_signal_connect_data(element, "new-sample", G_CALLBACK(on_new_sample), display, NULL, 0);
+            g_signal_connect_data(element, "eos", G_CALLBACK(on_eos), display, NULL, 0);
+        }
+
+        /* setup option */
+        if (strcmp(option, "")) {
+            if (strcmp(elem, "capsfilter"))
+                g_object_set(G_OBJECT(element), option, arg, NULL);
+        }
+        /* append to list */
+        if (!head) {
+            head = createNode(element);
+            itr = head;
+        }
+        else {
+            itr->next = createNode(element);
+            itr = itr->next;
+        }
+    }
+
+    fclose(file);
+    return head;
+}
+
+GstElement* setupPipeline(struct display* display, int dec) {
     struct ringBuff* ringBuff = display->ringBuff;
+    GstElemList *head = NULL, *itr;
+    GstElement* prev = NULL;
     GstElement* pipeline = gst_pipeline_new("mypipeline");
-    GstElement* src = gst_element_factory_make("filesrc", "source");
-    GstElement* demux = gst_element_factory_make("qtdemux", "demuxer");
-    GstElement* parse = gst_element_factory_make("h264parse", "parser");
-    GstElement* decoder = gst_element_factory_make("v4l2h264dec", "decoder");
-    GstElement* capsfilter = gst_element_factory_make("capsfilter", "filter");
-    GstElement* converter = gst_element_factory_make("videoconvert", "converter");
-    GstElement* sink = gst_element_factory_make("appsink", "sink");
-    GstCaps* caps =
-        gst_caps_new_simple("video/x-raw",
-                            "format", G_TYPE_STRING, "RGB",
-                            NULL);
+    GstElement* demux, *parse;
+    int cnt = 0;
+    head = parsePipelineFile(display, PIPELINE_FILE_PATH);
+    assert(head);
 
     display->videoWidth = 0;
     display->videoHeight = 0;
     display->format = NULL;
 
-    if (!pipeline || !src || !demux || !parse || !decoder || !sink) {
-        g_printerr("Failed to find elements\n");
-        return NULL;
-    }
-    // Set filesrc location
-    g_object_set(G_OBJECT(src), "location", FILE_PATH, NULL);
-    // Set caps
-    g_object_set(G_OBJECT(capsfilter), "caps", caps, NULL);
-    gst_caps_unref(caps);
-    // Configure emit signal for appsink
-    g_object_set(G_OBJECT(sink), "emit-signals", TRUE, NULL);
-    // Connect new-sample event
-    g_signal_connect_data(sink, "new-sample", G_CALLBACK(on_new_sample), display, NULL, 0);
-    g_signal_connect_data(sink, "eos", G_CALLBACK(on_eos), display, NULL, 0);
     // Add elements to pipeline
-    gst_bin_add_many(GST_BIN(pipeline), src, demux, parse, decoder, converter, capsfilter, sink, NULL);
-    // Link elements together
-    if (!gst_element_link(src, demux)) {
-        g_printerr("src and demux could not be linked.\n");
-        gst_object_unref(pipeline);
-        return NULL;
+    for (itr = head; itr != NULL; itr = itr->next) {
+        GstElement *elem = itr->elem;
+        gst_bin_add(GST_BIN(pipeline), elem);
+        if (prev) {
+            gst_element_link(prev, elem);
+        }
+        if (cnt == 1) {
+            prev = NULL;
+            demux = elem;
+        }
+        else if (cnt == 2) {
+            prev = elem;
+            parse = elem;
+        }
+        else
+            prev = elem;
+        cnt++;
     }
-    if (!gst_element_link_many(parse, decoder, converter, capsfilter, sink, NULL)) {
-        g_printerr("parse, decoder, sink could not be linked.\n");
-        gst_object_unref(pipeline);
-        return NULL;
-    }
+
     g_signal_connect(demux, "pad-added", G_CALLBACK(on_pad_added), parse);
 
     return pipeline;
@@ -449,8 +582,12 @@ int main(int argc, char* argv[]) {
     struct display* display = initWayland();
     pthread_t renderThread;
     GstElement* pipeline;
+    int dec = V4L2;
     display->ringBuff = initRingBuff();
     display->eos = FALSE;
+
+    if (argc == 2 && !strcmp(argv[1], "OMX"))
+        dec = OMX;
 
     // Launch render thread
     if (pthread_create(&renderThread, NULL, renderLoop, display)) {
@@ -462,7 +599,7 @@ int main(int argc, char* argv[]) {
 
     // Create a GLib main loop to handle GStreamer events
     gst_init(&argc, &argv);
-    pipeline = setupPipeline(display);
+    pipeline = setupPipeline(display, dec);
     gst_element_set_state(pipeline, GST_STATE_PLAYING);
     display->main_loop = g_main_loop_new(NULL, FALSE);
     g_main_loop_run(display->main_loop);
