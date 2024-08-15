@@ -1,0 +1,7 @@
+src,filesrc,location=../Resources/BigBuckBunny_320x180.mp4
+demux,qtdemux
+parser,h264parse
+decoder,v4l2h264dec
+converter,videoconvert
+capsfilter,video/x-raw,format=RGB
+sink,appsink

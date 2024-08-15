@@ -123,6 +123,8 @@ target_link_libraries(videoStream
   wayland-egl
 )
 
+file(COPY "${CMAKE_SOURCE_DIR}/Renderer/pipeline.txt" DESTINATION "${CMAKE_BINARY_DIR}/Renderer")
+
 if(VULKAN_BUILD MATCHES 1)
 # Set C++ standard version
 set(CMAKE_CXX_STANDARD 17)
