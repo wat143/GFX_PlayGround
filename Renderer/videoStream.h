@@ -50,6 +50,28 @@ struct display {
     bool eos;
 };
 
+// Decoder enum
+enum {
+    V4L2,
+    OMX
+};
+
+// Element list
+enum {
+    SRC,
+    DEMUX,
+    PARSER,
+    DECODER,
+    CAPS,
+    CONVERTER,
+    SINK,
+    ELEMENT_MAX
+};
+
+const char* elem_list[] =
+    {"src", "demux", "parser", "decoder",
+     "caps", "converter", "sink"};
+
 // Shaders
 const GLchar* vertex_source = 
     "attribute vec3 pos;"
